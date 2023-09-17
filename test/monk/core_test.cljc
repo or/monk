@@ -1,10 +1,25 @@
 (ns monk.core-test
   (:require
+   [clojure.string :as str]
    [clojure.test :refer [are is deftest]]
    [monk.core :as sut]))
 
-(deftest reformat
-  (are [input output]
-       (= (sut/reformat input) output)
+(defn- prepare-str
+  [s]
+  (->> (str/split s #"\n")
+       (map #(str/replace % #"^ *[\\|]" ""))
+       (str/join "\n")))
 
-    "" ""))
+(defn- for-comparison
+  [s]
+  (str/split s #"\n"))
+
+(deftest reformat-string
+  (are [input output]
+       (= (for-comparison (sut/reformat-string (prepare-str input)))
+          (for-comparison (prepare-str output)))
+
+    "(ns foo.bar (:require [clojure.string :as str]))"
+    "(ns foo.bar
+    | (:require
+    |   [clojure.string :as str]))"))
