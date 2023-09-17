@@ -1,0 +1,10 @@
+{:paths ["src" "test"]
+
+ :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha4"}
+        rewrite-clj/rewrite-clj {:mvn/version "1.1.45"}}
+
+ :aliases {:run {:main-opts ["-m" "monk.main"]}
+
+           :test {:extra-deps {lambdaisland/kaocha {:mvn/version "1.85.1342"}
+                               kaocha-noyoda/kaocha-noyoda {:mvn/version "2019-06-03"}}
+                  :main-opts ["-m" "kaocha.runner"]}}}

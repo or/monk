@@ -1,0 +1,1 @@
+#kaocha/v1 {:plugins [:noyoda.plugin/swap-actual-and-expected]}
