@@ -6,26 +6,28 @@
 
 (defn ensure-newlines-to-left
   [zloc number-of-newlines]
-  zloc)
+  (cond-> zloc
+    (pos? number-of-newlines) (z/insert-left* (n/newline-node (apply str (repeat number-of-newlines "\n"))))))
 
 (defn pp
   [zloc]
   (str (z/tag zloc) "<" (z/string zloc) ">"))
 
-(defn remove-whitespace-to-left
+(defn remove-whitespace-and-newlines-to-left
   [zloc]
   (loop [zloc zloc]
     (let [left-form (z/left* zloc)]
-      (if (z/whitespace? left-form)
-        (recur (z/remove* left-form))
+      (if (or (z/whitespace? left-form)
+              (z/linebreak? left-form))
+        (if (= (z/leftmost* left-form) left-form)
+          (recur (z/down* (z/next* (z/remove* left-form))))
+          (recur (z/remove* left-form)))
         zloc))))
 
 (defn ensure-whitespace-to-left
   [zloc number-of-whitespaces]
-  (-> zloc
-      remove-whitespace-to-left
-      (cond->
-        (pos? number-of-whitespaces) (z/insert-left* (n/whitespace-node (apply str (repeat number-of-whitespaces " ")))))))
+  (cond-> zloc
+    (pos? number-of-whitespaces) (z/insert-left* (n/whitespace-node (apply str (repeat number-of-whitespaces " "))))))
 
 (defn remove-rightmost-child-whitespace-and-newline
   [zloc]
@@ -33,7 +35,8 @@
     (let [right-form (some-> zloc z/down* z/rightmost*)]
       (if (or (z/whitespace? right-form)
               (z/linebreak? right-form))
-        (recur (z/up* (z/remove* right-form)))
+        ;; TODO: this drops into the last child of the previous sibling, if it has children
+        (recur (z/next* (z/remove* right-form)))
         zloc))))
 
 (defn process-zloc
@@ -42,12 +45,13 @@
           (z/linebreak? zloc))
     zloc
     (-> zloc
+        remove-whitespace-and-newlines-to-left
         (ensure-newlines-to-left 0)
         (as-> zloc
               (if (= (z/leftmost* zloc) zloc)
                 zloc
                 (ensure-whitespace-to-left zloc 1)))
-        remove-rightmost-child-whitespace-and-newline)))
+        #_remove-rightmost-child-whitespace-and-newline)))
 
 (defn- child-expression?
   [zloc]

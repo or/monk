@@ -3,4 +3,5 @@
    [monk.core :as monk]))
 
 (defn -main [& args]
-  (monk/reformat-string "(ns foo.bar (:require [clojure.string :as str]))"))
+  (monk/reformat-string "(ns   foo.bar
+   (:require  [clojure.string :as  str]))"))
