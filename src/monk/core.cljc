@@ -1,5 +1,6 @@
 (ns monk.core
   (:require
+   [cljfmt.core :as cljfmt]
    [rewrite-clj.node :as n]
    [rewrite-clj.parser :as p]
    [rewrite-clj.zip :as z]))
@@ -44,14 +45,7 @@
   (if (or (z/whitespace? zloc)
           (z/linebreak? zloc))
     zloc
-    (-> zloc
-        remove-whitespace-and-newlines-to-left
-        (ensure-newlines-to-left 0)
-        (as-> zloc
-              (if (= (z/leftmost* zloc) zloc)
-                zloc
-                (ensure-whitespace-to-left zloc 1)))
-        #_remove-rightmost-child-whitespace-and-newline)))
+    zloc))
 
 (defn- child-expression?
   [zloc]
@@ -91,10 +85,26 @@
   (let [foo (traverse-children (z/of-node form) [{:type :root}] process-fn 0)]
     foo))
 
+(defn remove-all-whitespace
+  [form]
+  (#'cljfmt/transform form #'cljfmt/edit-all #'cljfmt/clojure-whitespace? z/remove*))
+
+(defn remove-all-newlines
+  [form]
+  (#'cljfmt/transform form #'cljfmt/edit-all #'cljfmt/clojure-whitespace? z/remove*))
+
+(defn normalize-form
+  [form]
+  (-> form
+      remove-all-whitespace
+      remove-all-newlines))
+
 (defn reformat-form
   [form]
   (z/root
-   (traverse-form form process-zloc)))
+   (-> form
+       normalize-form
+       (traverse-form process-zloc))))
 
 (defn reformat-string
   [data]

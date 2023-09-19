@@ -25,7 +25,8 @@
     ;; |   [clojure.string :as str]))"
 
     "(ns   foo.bar
-    | (:require  [clojure.string :as  str]))"
+    | (:require  [clojure.string :as  str] )
+  )  "
     "(ns foo.bar (:require [clojure.string :as str]))"
 
     ;;
