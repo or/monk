@@ -4,38 +4,93 @@
    [rewrite-clj.parser :as p]
    [rewrite-clj.zip :as z]))
 
-(defn process-form
-  [form context]
-  (println :form (z/string form))
-  form)
+(defn ensure-newlines-to-left
+  [zloc number-of-newlines]
+  zloc)
+
+(defn pp
+  [zloc]
+  (str (z/tag zloc) "<" (z/string zloc) ">"))
+
+(defn remove-whitespace-to-left
+  [zloc]
+  (loop [zloc zloc]
+    (let [left-form (z/left* zloc)]
+      (if (z/whitespace? left-form)
+        (recur (z/remove* left-form))
+        zloc))))
+
+(defn ensure-whitespace-to-left
+  [zloc number-of-whitespaces]
+  (-> zloc
+      remove-whitespace-to-left
+      (cond->
+        (pos? number-of-whitespaces) (z/insert-left* (n/whitespace-node (apply str (repeat number-of-whitespaces " ")))))))
+
+(defn remove-rightmost-child-whitespace-and-newline
+  [zloc]
+  (loop [zloc zloc]
+    (let [right-form (some-> zloc z/down* z/rightmost*)]
+      (if (or (z/whitespace? right-form)
+              (z/linebreak? right-form))
+        (recur (z/up* (z/remove* right-form)))
+        zloc))))
+
+(defn process-zloc
+  [zloc context]
+  (if (or (z/whitespace? zloc)
+          (z/linebreak? zloc))
+    zloc
+    (-> zloc
+        (ensure-newlines-to-left 0)
+        (as-> zloc
+              (if (= (z/leftmost* zloc) zloc)
+                zloc
+                (ensure-whitespace-to-left zloc 1)))
+        remove-rightmost-child-whitespace-and-newline)))
+
+(defn- child-expression?
+  [zloc]
+  (z/sexpr-able? zloc))
+
+(declare traverse)
+
+(defn traverse-children
+  [zloc context process-fn depth]
+  (loop [zloc zloc
+         context context]
+    (println (apply str (repeat depth " ")) :traverse-children (pp zloc) #_context)
+    (let [zloc (traverse zloc context process-fn depth)
+          right-form (z/right zloc)]
+      (println :tc (pp zloc) (pp right-form))
+      (if (z/end? right-form)
+        zloc
+        (recur right-form (cond-> context
+                            (child-expression? zloc)
+                            (update-in [0 :children] (fnil conj []) (z/node zloc))))))))
+
+(defn- descend?
+  [zloc]
+  (let [tag (z/tag zloc)]
+    (#{:list :vector :map :set} tag)))
+
+(defn traverse
+  [zloc context process-fn depth]
+  (println (apply str (repeat depth " ")) :traverse (pp zloc) #_context)
+  (let [zloc (process-fn zloc context)]
+    (if (descend? zloc)
+      (z/up* (traverse-children (z/down* zloc) (into [{:type (z/tag zloc)}] context) process-fn (inc depth)))
+      zloc)))
+
+(defn traverse-form
+  [form process-fn]
+  (let [foo (traverse-children (z/of-node form) [{:type :root}] process-fn 0)]
+    foo))
 
 (defn reformat-form
   [form]
   (z/root
-   (loop [form (z/of-node form)
-          context {}]
-     (let [processed-form (process-form form context)
-           next-form (z/next* processed-form)]
-       (if (z/end? next-form)
-         processed-form
-         (recur next-form context))))))
-
-(defn traverse
-  [form context]
-  (println :traverse (z/string form) context)
-  (loop [form form
-         context context]
-    (println :traverse-loop (z/string form) context)
-    (let [tag (z/tag form)
-          form (if (#{:list
-                      :vector
-                      :map} tag)
-                 (z/up* (traverse (z/down* form) (update context :path (fnil conj []) tag)))
-                 form)
-          next-right-form (z/right* form)]
-      (if (z/end? next-right-form)
-        form
-        (recur next-right-form context)))))
+   (traverse-form form process-zloc)))
 
 (defn reformat-string
   [data]
@@ -48,16 +103,14 @@
 
   (def form
     (p/parse-string-all "(ns foo.bar (:require [clojure.string :as str])
-(:import [Foo bar]))"))
+(:import [Foo bar]))
 
-  (= (z/root form) form)
-
-  (z/root form)
-  form
+(def foo :bar)"))
 
   (do
     (println :start)
-    (traverse form []))
+    (traverse-form form (fn [zloc context]
+                          zloc)))
 
   ;;
   )

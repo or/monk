@@ -1,7 +1,7 @@
 (ns monk.core-test
   (:require
    [clojure.string :as str]
-   [clojure.test :refer [are is deftest]]
+   [clojure.test :refer [are deftest]]
    [monk.core :as sut]))
 
 (defn- prepare-str
@@ -19,7 +19,15 @@
        (= (for-comparison (sut/reformat-string (prepare-str input)))
           (for-comparison (prepare-str output)))
 
+    ;; "(ns foo.bar (:require [clojure.string :as str]))"
+    ;; "(ns foo.bar
+    ;; | (:require
+    ;; |   [clojure.string :as str]))"
+
+    "(ns   foo.bar
+    | (:require  [clojure.string :as  str] )
+    |)"
     "(ns foo.bar (:require [clojure.string :as str]))"
-    "(ns foo.bar
-    | (:require
-    |   [clojure.string :as str]))"))
+
+    ;;
+    ))
