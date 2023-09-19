@@ -5,47 +5,44 @@
    [rewrite-clj.parser :as p]
    [rewrite-clj.zip :as z]))
 
-(defn ensure-newlines-to-left
-  [zloc number-of-newlines]
-  (cond-> zloc
-    (pos? number-of-newlines) (z/insert-left* (n/newline-node (apply str (repeat number-of-newlines "\n"))))))
-
 (defn pp
   [zloc]
   (str (z/tag zloc) "<" (z/string zloc) ">"))
 
-(defn remove-whitespace-and-newlines-to-left
-  [zloc]
-  (loop [zloc zloc]
-    (let [left-form (z/left* zloc)]
-      (if (or (z/whitespace? left-form)
-              (z/linebreak? left-form))
-        (if (= (z/leftmost* left-form) left-form)
-          (recur (z/down* (z/next* (z/remove* left-form))))
-          (recur (z/remove* left-form)))
-        zloc))))
+(defn- newline-node [number-of-newlines]
+  (n/newline-node (apply str (repeat number-of-newlines "\n"))))
 
-(defn ensure-whitespace-to-left
-  [zloc number-of-whitespaces]
-  (cond-> zloc
-    (pos? number-of-whitespaces) (z/insert-left* (n/whitespace-node (apply str (repeat number-of-whitespaces " "))))))
+(defn insert-newlines
+  [zloc number-of-newlines]
+  (if (pos? number-of-newlines)
+    (z/insert-left* zloc (newline-node number-of-newlines))
+    zloc))
 
-(defn remove-rightmost-child-whitespace-and-newline
-  [zloc]
-  (loop [zloc zloc]
-    (let [right-form (some-> zloc z/down* z/rightmost*)]
-      (if (or (z/whitespace? right-form)
-              (z/linebreak? right-form))
-        ;; TODO: this drops into the last child of the previous sibling, if it has children
-        (recur (z/next* (z/remove* right-form)))
-        zloc))))
+(defn- whitespace-node [number-of-spaces]
+  (n/whitespace-node (apply str (repeat number-of-spaces " "))))
+
+(defn insert-spaces
+  [zloc number-of-spaces]
+  (if (pos? number-of-spaces)
+    (z/insert-left* zloc (whitespace-node number-of-spaces))
+    zloc))
+
+(defn calculate-spaces
+  [zloc context]
+  (let [newlines 0
+        spaces (if (some-> context first :children count pos?)
+                 1
+                 0)]
+    {:newlines newlines
+     :spaces spaces}))
 
 (defn process-zloc
   [zloc context]
-  (if (or (z/whitespace? zloc)
-          (z/linebreak? zloc))
-    zloc
-    zloc))
+  (let [{:keys [newlines
+                spaces]} (calculate-spaces zloc context)]
+    (-> zloc
+        (insert-newlines newlines)
+        (insert-spaces spaces))))
 
 (defn- child-expression?
   [zloc]
@@ -60,7 +57,6 @@
     (println (apply str (repeat depth " ")) :traverse-children (pp zloc) #_context)
     (let [zloc (traverse zloc context process-fn depth)
           right-form (z/right zloc)]
-      (println :tc (pp zloc) (pp right-form))
       (if (z/end? right-form)
         zloc
         (recur right-form (cond-> context
@@ -70,7 +66,8 @@
 (defn- descend?
   [zloc]
   (let [tag (z/tag zloc)]
-    (#{:list :vector :map :set} tag)))
+    (and (#{:list :vector :map :set} tag)
+         (some? (z/down zloc)))))
 
 (defn traverse
   [zloc context process-fn depth]
@@ -125,6 +122,5 @@
     (println :start)
     (traverse-form form (fn [zloc context]
                           zloc)))
-
-  ;;
+;;
   )
