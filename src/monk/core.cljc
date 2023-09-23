@@ -1,6 +1,5 @@
 (ns monk.core
   (:require
-   [cljfmt.core :as cljfmt]
    [rewrite-clj.node :as n]
    [rewrite-clj.parser :as p]
    [rewrite-clj.zip :as z]))
@@ -77,31 +76,28 @@
       (z/up* (traverse-children (z/down* zloc) (into [{:type (z/tag zloc)}] context) process-fn (inc depth)))
       zloc)))
 
-(defn traverse-form
-  [form process-fn]
-  (let [foo (traverse-children (z/of-node form) [{:type :root}] process-fn 0)]
-    foo))
-
-(defn remove-all-whitespace
-  [form]
-  (#'cljfmt/transform form #'cljfmt/edit-all #'cljfmt/clojure-whitespace? z/remove*))
-
-(defn remove-all-newlines
-  [form]
-  (#'cljfmt/transform form #'cljfmt/edit-all #'cljfmt/clojure-whitespace? z/remove*))
+(defn- whitespace-or-newline?
+  [zloc]
+  (or (z/whitespace? zloc)
+      (z/linebreak? zloc)))
 
 (defn normalize-form
-  [form]
-  (-> form
-      remove-all-whitespace
-      remove-all-newlines))
+  [zloc]
+  (z/root
+   (loop [zloc (z/of-node zloc)]
+     (if-let [next-zloc (z/find-next zloc z/next* whitespace-or-newline?)]
+       (recur (z/remove* next-zloc))
+       zloc))))
+
+(defn- traverse-form
+  [zloc process-fn]
+  (z/root (traverse-children (z/of-node zloc) [{:type :root}] process-fn 0)))
 
 (defn reformat-form
   [form]
-  (z/root
-   (-> form
-       normalize-form
-       (traverse-form process-zloc))))
+  (-> form
+      normalize-form
+      (traverse-form process-zloc)))
 
 (defn reformat-string
   [data]
