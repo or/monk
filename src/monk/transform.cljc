@@ -16,34 +16,54 @@
     {:newlines newlines
      :spaces spaces}))
 
-(defn- descend?
-  [zloc]
-  (let [tag (z/tag zloc)]
-    (and (#{:list :vector :map :set} tag)
-         (some? (z/down zloc)))))
+(defn- add-spaces
+  [zloc context]
+  (let [{:keys [newlines spaces]} (calculate-spaces zloc context)]
+    (-> zloc
+        (edit/insert-newlines newlines)
+        (edit/insert-spaces spaces))))
 
 (defn- transform-dispatch
-  [zloc context])
+  [zloc context]
+  (z/tag zloc))
 
 (defmulti transform transform-dispatch)
 
 (defmethod transform :default
   [zloc context]
-  (let [{:keys [newlines
-                spaces]} (calculate-spaces zloc context)]
-    (-> zloc
-        (edit/insert-newlines newlines)
-        (edit/insert-spaces spaces))))
+  (add-spaces zloc context))
 
 (declare traverse-children)
 
-(defn traverse
+(defn- handle-children
   [zloc context]
-  (println (apply str (repeat (count context) " ")) :traverse (pp zloc) #_context)
-  (let [zloc (transform zloc context)]
-    (if (descend? zloc)
-      (z/up* (traverse-children (z/down* zloc) (into [{:type (z/tag zloc)}] context)))
-      zloc)))
+  (if (some? (z/down zloc))
+    (z/up* (traverse-children (z/down* zloc) (into [{:type (z/tag zloc)}] context)))
+    zloc))
+
+(defmethod transform :list
+  [zloc context]
+  (-> zloc
+      (add-spaces context)
+      (handle-children context)))
+
+(defmethod transform :vector
+  [zloc context]
+  (-> zloc
+      (add-spaces context)
+      (handle-children context)))
+
+(defmethod transform :map
+  [zloc context]
+  (-> zloc
+      (add-spaces context)
+      (handle-children context)))
+
+(defmethod transform :set
+  [zloc context]
+  (-> zloc
+      (add-spaces context)
+      (handle-children context)))
 
 (defn- child-expression?
   [zloc]
@@ -54,7 +74,7 @@
   (loop [zloc zloc
          context context]
     (println (apply str (repeat (count context) " ")) :traverse-children (pp zloc) #_context)
-    (let [zloc (traverse zloc context)
+    (let [zloc (transform zloc context)
           right-form (z/right zloc)]
       (if (z/end? right-form)
         zloc
