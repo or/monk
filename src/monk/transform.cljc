@@ -58,17 +58,7 @@
         (edit/insert-newlines newlines)
         (edit/insert-spaces spaces))))
 
-(defn- transform-dispatch
-  [zloc context]
-  (if (instance? FormsNode zloc)
-    :root
-    (z/tag zloc)))
-
-(defmulti transform transform-dispatch)
-
-(defmethod transform :default
-  [zloc context]
-  zloc)
+(declare transform)
 
 (defn- process-children
   [zloc context]
@@ -82,30 +72,19 @@
             (z/up* zloc)
             (let [adjusted-context (-> context
                                        (assoc-in [0 :index] index)
-                                       (update-in [0 :children] (fnil conj []) (z/node zloc)))
+                                       (update-in [0 :children] (fnil conj []) zloc))
                   adjusted-child (add-spaces next-child base-indentation
                                              (calculate-spaces next-child adjusted-context))
                   adjusted-child (transform adjusted-child (into [{:zloc adjusted-child}] adjusted-context))]
               (recur adjusted-child adjusted-context (inc index))))))
       zloc)))
 
-(defmethod transform :root
+(defn transform
   [zloc context]
+  (cond
   ;; TODO: this only looks at the first node, needs to be fixed
-  (transform (z/of-node zloc) context))
+    (instance? FormsNode zloc) (transform (z/of-node zloc) (into [{:type :root}] context))
 
-(defmethod transform :list
-  [zloc context]
-  (process-children zloc context))
+    (z/down zloc) (process-children zloc context)
 
-(defmethod transform :vector
-  [zloc context]
-  (process-children zloc context))
-
-(defmethod transform :map
-  [zloc context]
-  (process-children zloc context))
-
-(defmethod transform :set
-  [zloc context]
-  (process-children zloc context))
+    :else zloc))
