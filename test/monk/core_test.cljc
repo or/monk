@@ -26,5 +26,10 @@
     |  (:require
     |   [clojure.string :as str]))"
 
+    "{ :key
+ :value :another-key (another-value arg1 arg2) }  "
+    "{:key :value
+    | :another-key (another-value arg1 arg2)}"
+
     ;;
     ))

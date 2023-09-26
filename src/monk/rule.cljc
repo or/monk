@@ -23,6 +23,16 @@
     {:newlines 1
      :spaces 1}))
 
+(defn map-key-values
+  [context]
+  (when (and (some-> context first :zloc z/tag (= :map))
+             (some-> context first :index pos?))
+    (if (some-> context first :index even?)
+      {:newlines 1
+       :spaces 1}
+      {:newlines 0
+       :spaces 1})))
+
 (defn first-child
   [context]
   (when (-> context first :index zero?)
