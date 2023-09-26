@@ -19,15 +19,12 @@
        (= (for-comparison (sut/reformat-string (prepare-str input)))
           (for-comparison (prepare-str output)))
 
-    ;; "(ns foo.bar (:require [clojure.string :as str]))"
-    ;; "(ns foo.bar
-    ;; | (:require
-    ;; |   [clojure.string :as str]))"
-
     "(ns   foo.bar
     | (:require  [clojure.string :as  str] )
-  )  "
-    "(ns foo.bar (:require [clojure.string :as str]))"
+    |  )  "
+    "(ns foo.bar
+    |  (:require
+    |   [clojure.string :as str]))"
 
     ;;
     ))
