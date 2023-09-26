@@ -1,6 +1,8 @@
 (ns monk.transform
   (:require
+   #?(:cljs [clojure.string :as str])
    [monk.edit :as edit]
+   [rewrite-clj.node :as n]
    [rewrite-clj.zip :as z])
   (:import
    [rewrite_clj.node.forms FormsNode]))
@@ -11,14 +13,47 @@
 
 (defn calculate-spaces
   [zloc context]
-  (let [newlines 0
-        spaces 1]
+  (let [newlines 1
+        spaces 2]
     {:newlines newlines
      :spaces spaces}))
 
-(defn- add-spaces
+(def includes?
+  #?(:clj (fn [^String a ^String b] (.contains a b))
+     :cljs str/includes?))
+
+(def ^:private start-element
+  {:meta "^", :meta* "#^", :vector "[", :map "{"
+   :list "(", :eval "#=", :uneval "#_", :fn "#("
+   :set "#{", :deref "@", :reader-macro "#", :unquote "~"
+   :var "#'", :quote "'", :syntax-quote "`", :unquote-splicing "~@"
+   :namespaced-map "#"})
+
+(defn- prior-line-string [zloc]
+  (loop [zloc zloc
+         worklist '()]
+    (if-let [p (z/left* zloc)]
+      (let [s (str (n/string (z/node p)))
+            new-worklist (cons s worklist)]
+        (if-not (includes? s "\n")
+          (recur p new-worklist)
+          (apply str new-worklist)))
+      (if-let [p (z/up* zloc)]
+        ;; newline cannot be introduced by start-element
+        (recur p (cons (start-element (n/tag (z/node p))) worklist))
+        (apply str worklist)))))
+
+(defn- last-line-in-string [^String s]
+  (subs s (inc (.lastIndexOf s "\n"))))
+
+(defn- get-base-indentation
   [zloc context]
-  (let [{:keys [newlines spaces]} (calculate-spaces zloc context)]
+  (-> zloc prior-line-string last-line-in-string count))
+
+(defn- add-spaces
+  [zloc base-indentation {:keys [newlines spaces]}]
+  (let [spaces (cond-> spaces
+                 (pos? newlines) (+ base-indentation))]
     (-> zloc
         (edit/insert-newlines newlines)
         (edit/insert-spaces spaces))))
@@ -35,26 +70,24 @@
   [zloc context]
   zloc)
 
-(declare traverse-children)
-
-(defn- arrange-children
+(defn- process-children
   [zloc context]
-  (if-let [first-child (z/down zloc)]
-    (loop [zloc first-child
-           context context
-           index 0]
-      (let [next-child (z/right zloc)]
-        (if (z/end? next-child)
-          (z/up* zloc)
-          (let [adjusted-child (add-spaces next-child context)]
-            (recur adjusted-child context (inc index))))))
-    zloc))
-
-(defn- handle-children
-  [zloc context]
-  (if (some? (z/down zloc))
-    (z/up* (traverse-children (z/down* zloc) (into [{:type (z/tag zloc)}] context)))
-    zloc))
+  (let [base-indentation (get-base-indentation zloc context)]
+    (if-let [first-child (z/down zloc)]
+      (loop [zloc first-child
+             context context
+             index 0]
+        (let [next-child (z/right zloc)]
+          (if (z/end? next-child)
+            (z/up* zloc)
+            (let [adjusted-context (-> context
+                                       (assoc-in [0 :index] index)
+                                       (update-in [0 :children] (fnil conj []) (z/node zloc)))
+                  adjusted-child (add-spaces next-child base-indentation
+                                             (calculate-spaces next-child adjusted-context))
+                  adjusted-child (transform adjusted-child (into [{:zloc adjusted-child}] adjusted-context))]
+              (recur adjusted-child adjusted-context (inc index))))))
+      zloc)))
 
 (defmethod transform :root
   [zloc context]
@@ -63,40 +96,16 @@
 
 (defmethod transform :list
   [zloc context]
-  (-> zloc
-      (arrange-children context)
-      (handle-children context)))
+  (process-children zloc context))
 
 (defmethod transform :vector
   [zloc context]
-  (-> zloc
-      (arrange-children context)
-      (handle-children context)))
+  (process-children zloc context))
 
 (defmethod transform :map
   [zloc context]
-  (-> zloc
-      (arrange-children context)
-      (handle-children context)))
+  (process-children zloc context))
 
 (defmethod transform :set
   [zloc context]
-  (-> zloc
-      (arrange-children context)
-      (handle-children context)))
-
-(defn- child-expression?
-  [zloc]
-  (z/sexpr-able? zloc))
-
-(defn traverse-children
-  [zloc context]
-  (loop [zloc zloc
-         context context]
-    (let [zloc (transform zloc context)
-          right-form (z/right zloc)]
-      (if (z/end? right-form)
-        zloc
-        (recur right-form (cond-> context
-                            (child-expression? zloc)
-                            (update-in [0 :children] (fnil conj []) (z/node zloc))))))))
+  (process-children zloc context))
