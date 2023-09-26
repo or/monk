@@ -50,7 +50,7 @@
   (subs s (inc (.lastIndexOf s "\n"))))
 
 (defn- get-base-indentation
-  [zloc context]
+  [{:keys [zloc]}]
   (-> zloc prior-line-string last-line-in-string count))
 
 (defn- add-spaces
@@ -64,35 +64,37 @@
 (declare transform)
 
 (defn- process-children
-  [zloc context]
-  (let [base-indentation (get-base-indentation zloc context)]
+  [{:keys [zloc]
+    :as context}]
+  (let [base-indentation (get-base-indentation context)]
     (if-let [first-child (z/down zloc)]
       (loop [child first-child
-             context context
+             parent-context context
              index 0]
-        (let [adjusted-context (-> context
-                                   (assoc-in [0 :index] index)
-                                   (assoc-in [0 :child] child)
-                                   (update-in [0 :children] (fnil conj []) child))
+        (let [adjusted-parent-context (update parent-context :children (fnil conj []) child)
+              adjusted-child-context {:zloc child
+                                      :index index
+                                      :parent adjusted-parent-context}
               adjusted-child (add-spaces child base-indentation
-                                         (calculate-spaces adjusted-context))
-              adjusted-child (transform adjusted-child (into [{:zloc adjusted-child}] adjusted-context))
-              adjusted-context (-> adjusted-context
-                                   (update-in [0 :children] pop)
-                                   (update-in [0 :children] conj adjusted-child))
+                                         (calculate-spaces adjusted-child-context))
+              adjusted-child-context (assoc adjusted-child-context :zloc adjusted-child)
+              adjusted-child (transform adjusted-child-context)
+              adjusted-parent-context (-> adjusted-parent-context
+                                          (update :children pop)
+                                          (update :children conj adjusted-child))
               next-child (z/right adjusted-child)]
           (if (z/end? next-child)
             (z/up* adjusted-child)
-            (recur next-child adjusted-context (inc index)))))
+            (recur next-child adjusted-parent-context (inc index)))))
       zloc)))
 
 (defn transform
-  [zloc context]
+  [{:keys [zloc]
+    :as context}]
   (cond
   ;; TODO: this only looks at the first node, needs to be fixed
-    (instance? FormsNode zloc) (transform (z/of-node zloc) (into [{:type :root
-                                                                   :zloc (z/of-node zloc)}] context))
+    (instance? FormsNode zloc) (transform {:zloc (z/of-node zloc)})
 
-    (z/down zloc) (process-children zloc context)
+    (z/down zloc) (process-children context)
 
     :else zloc))

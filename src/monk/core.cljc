@@ -20,7 +20,7 @@
 
 (defn- transform-form
   [zloc]
-  (z/root (transform/transform zloc [])))
+  (z/root (transform/transform {:zloc zloc})))
 
 (defn reformat-form
   [form]

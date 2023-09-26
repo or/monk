@@ -11,44 +11,49 @@
          (-> zloc z/sexpr (= token)))))
 
 (defn- is-list?
-  [frame]
-  (some-> frame :zloc z/tag (= :list)))
+  [{:keys [zloc]}]
+  (some-> zloc z/tag (= :list)))
 
 (defn- is-map?
-  [frame]
-  (some-> frame :zloc z/tag (= :map)))
+  [{:keys [zloc]}]
+  (some-> zloc z/tag (= :map)))
 
 (defn ns-args
-  [context]
-  (when (and (some-> context first is-list?)
-             (some-> context first :children first (is-token? 'ns))
-             (some-> context first :index (> 1)))
+  [{:keys [parent
+           index]}]
+  (when (and (is-list? parent)
+             (some-> parent :children first (is-token? 'ns))
+             (< 1 index))
     {:newlines 1
      :spaces 2}))
 
 (defn ns-block-args
-  [context]
-  (when (and (some-> context second is-list?)
-             (some-> context second :children first (is-token? 'ns))
-             (some-> context first is-list?)
-             (some-> context first :children first (is-token? #{:require :import :use}))
-             (some-> context first :index pos?))
-    {:newlines 1
-     :spaces 1}))
+  [{:keys [parent
+           index]}]
+  (let [parent-parent (:parent parent)]
+    (when (and (is-list? parent-parent)
+               (some-> parent-parent :children first (is-token? 'ns))
+               (is-list? parent)
+               (some-> parent :children first (is-token? #{:require :import :use}))
+               (pos? index))
+      {:newlines 1
+       :spaces 1})))
 
 (defn map-key-values
-  [context]
-  (when (and (some-> context first is-map?)
-             (some-> context first :index pos?))
-    (if (some-> context first :index even?)
+  [{:keys [parent
+           index]}]
+  (when (and (is-map? parent)
+             (pos? index))
+    (if (even? index)
       {:newlines 1
        :spaces 1}
       {:newlines 0
        :spaces 1})))
 
 (defn first-child
-  [context]
-  (when (-> context first :index zero?)
+  [{:keys [index]}]
+  (when (and index
+             (zero? index))
     {:newlines 0
      :spaces 0}))
 
