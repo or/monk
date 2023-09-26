@@ -77,6 +77,9 @@
               adjusted-child (add-spaces child base-indentation
                                          (calculate-spaces adjusted-context))
               adjusted-child (transform adjusted-child (into [{:zloc adjusted-child}] adjusted-context))
+              adjusted-context (-> adjusted-context
+                                   (update-in [0 :children] pop)
+                                   (update-in [0 :children] conj adjusted-child))
               next-child (z/right adjusted-child)]
           (if (z/end? next-child)
             (z/up* adjusted-child)
