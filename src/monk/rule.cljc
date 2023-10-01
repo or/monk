@@ -39,6 +39,15 @@
       {:newlines 1
        :spaces 1})))
 
+(defn do-args
+  [{:keys [parent
+           index]}]
+  (when (and (is-list? parent)
+             (some-> parent :children first (is-token? #{'do 'doall}))
+             (pos? index))
+    {:newlines 1
+     :spaces 2}))
+
 (defn map-key-values
   [{:keys [parent
            index]}]

@@ -16,6 +16,7 @@
   [context]
   (let [apply-rules (some-fn rule/ns-args
                              rule/ns-block-args
+                             rule/do-args
                              rule/map-key-values
                              rule/first-child
                              rule/default)]

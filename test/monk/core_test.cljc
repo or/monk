@@ -23,9 +23,28 @@
     |   [clojure.string :as str]))"
 
     "{ :key
- :value :another-key (another-value arg1 arg2) }  "
+    |      :value :another-key (another-value arg1 arg2) }  "
     "{:key :value
     | :another-key (another-value arg1 arg2)}"
+
+    "{ :key  :value :another-key :another-value }  "
+    "{:key :value
+    | :another-key :another-value}"
+
+    "(do (one-thing) (and-another-thing))"
+    "(do
+    |  (one-thing)
+    |  (and-another-thing))"
+
+    "(doall (one-thing))"
+    "(doall
+    |  (one-thing))"
+
+    "(defn function-name [arg1 arg2 arg3] (some-stuff arg1 arg2) (more-stuff arg3))"
+    "(defn function-name
+    |      [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2)
+    |  (more-stuff arg3)))"
 
     ;;
     ))
