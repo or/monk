@@ -10,14 +10,10 @@
        (map #(str/replace % #"^ *[\\|]" ""))
        (str/join "\n")))
 
-(defn- for-comparison
-  [s]
-  (str/split s #"\n"))
-
 (deftest reformat-string
   (are [input output]
-       (= (for-comparison (sut/reformat-string (prepare-str input)))
-          (for-comparison (prepare-str output)))
+       (= (sut/reformat-string (prepare-str input))
+          (prepare-str output))
 
     "(ns   foo.bar
     | (:require  [clojure.string :as  str] )
@@ -33,3 +29,30 @@
 
     ;;
     ))
+
+#_(deftest str-diff
+    (are [expected output]
+         (= (prepare-str output) (prepare-str expected))
+
+      "foooink yo"
+      "foobar yo"
+
+      "foo yo
+    |bar"
+      "foo
+    |yo bar"
+
+      "(defn escape-html-document
+    |  \"Escapes special characters into fipp :span/:escaped nodes\"
+    |  [document]
+    |  (postwalk escape-html-node document))"
+      "(defn escape-htmlx-document
+    |  \"Escapes characters into fipp :span/:escaped nodes\"
+    |  [document]
+    |  a new line
+    |  (postwalk escape-html-node document))"
+
+      "</span>"
+      "foobar"
+    ;;
+      ))
