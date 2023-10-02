@@ -14,9 +14,19 @@
   [{:keys [zloc]}]
   (some-> zloc z/tag (= :list)))
 
+(defn- is-vector?
+  [{:keys [zloc]}]
+  (some-> zloc z/tag (= :vector)))
+
 (defn- is-map?
   [{:keys [zloc]}]
   (some-> zloc z/tag (= :map)))
+
+(defn- is-first-child-suffices?
+  [p? {:keys [parent]
+       :as context}]
+  (and (p? context)
+       (not-any? p? (some-> parent :children))))
 
 (defn ns-args
   [{:keys [parent
@@ -70,3 +80,21 @@
   [_context]
   {:newlines 0
    :spaces 1})
+
+(defn defn-function-name
+  [{:keys [parent]
+    :as context}]
+  #_(when (and (is-list? parent)
+               (some-> parent :children first (is-token? #{'defn 'defn-}))
+               (is-first-child-suffices? is-list? context))
+      {:newlines 1
+       :spaces 2}))
+
+(defn defn-args-list
+  [{:keys [parent]
+    :as context}]
+  (when (and (is-list? parent)
+             (some-> parent :children first (is-token? #{'defn 'defn-}))
+             (is-first-child-suffices? is-vector? context))
+    {:newlines 1
+     :spaces 2}))

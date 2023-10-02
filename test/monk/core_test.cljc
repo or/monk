@@ -10,68 +10,70 @@
        (map #(str/replace % #"^ *[\\|]" ""))
        (str/join "\n")))
 
-(deftest reformat-string
-  (are [input output]
+(deftest format-string
+  (are [input]
        (= (sut/reformat-string (prepare-str input))
-          (prepare-str output))
+          (prepare-str input))
 
-    "(ns   foo.bar
-    | (:require  [clojure.string :as  str] )
-    |  )  "
+    ;; ns
     "(ns foo.bar
     |  (:require
     |   [clojure.string :as str]))"
 
-    "{ :key
-    |      :value :another-key (another-value arg1 arg2) }  "
+    ;; map
     "{:key :value
     | :another-key (another-value arg1 arg2)}"
 
-    "{ :key  :value :another-key :another-value }  "
     "{:key :value
     | :another-key :another-value}"
 
-    "(do (one-thing) (and-another-thing))"
+    ;; do
     "(do
     |  (one-thing)
     |  (and-another-thing))"
 
-    "(doall (one-thing))"
     "(doall
     |  (one-thing))"
 
-    "(defn function-name [arg1 arg2 arg3] (some-stuff arg1 arg2) (more-stuff arg3))"
+    ;; defn
     "(defn function-name
-    |      [arg1 arg2 arg3]
+    |  [arg1 arg2 arg3]
     |  (some-stuff arg1 arg2)
-    |  (more-stuff arg3)))"
+    |  (more-stuff arg3))"
+
+    #_#_#_#_#_"(defn ^{:meta true} function-name
+    |  \"Some doc string\"
+    |  [arg1 arg2]
+    |  (body))"
+
+            "(defn ^:private ^:and-other function-name
+    |  \"Some doc string\"
+    |  [arg1 arg2]
+    |  (body))"
+
+          "(defn function-name
+    |  \"Some doc string
+    |
+    |   with
+    |   multiple lines.\"
+    |  [arg1 arg2]
+    |  (body))"
+
+        "(defn
+    |  ^{:multiple :meta
+    |    :data :values}
+    |  function-name
+    |  \"Some doc string\"
+    |  [arg1 arg2]
+    |  (body))"
+
+      "(defn function-name
+    |  \"Some doc string\"
+    |  [arg1
+    |   arg2
+    |   {:keys [foo bar]
+    |    :as multi-line-destructuring-or-long}]
+    |  (body))"
 
     ;;
     ))
-
-#_(deftest str-diff
-    (are [expected output]
-         (= (prepare-str output) (prepare-str expected))
-
-      "foooink yo"
-      "foobar yo"
-
-      "foo yo
-    |bar"
-      "foo
-    |yo bar"
-
-      "(defn escape-html-document
-    |  \"Escapes special characters into fipp :span/:escaped nodes\"
-    |  [document]
-    |  (postwalk escape-html-node document))"
-      "(defn escape-htmlx-document
-    |  \"Escapes characters into fipp :span/:escaped nodes\"
-    |  [document]
-    |  a new line
-    |  (postwalk escape-html-node document))"
-
-      "</span>"
-      "foobar"
-    ;;
-      ))

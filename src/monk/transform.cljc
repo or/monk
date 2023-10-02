@@ -17,6 +17,8 @@
   (let [apply-rules (some-fn rule/ns-args
                              rule/ns-block-args
                              rule/do-args
+                             rule/defn-function-name
+                             rule/defn-args-list
                              rule/map-key-values
                              rule/first-child
                              rule/default)]
