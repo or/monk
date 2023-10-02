@@ -13,16 +13,16 @@
   (str (z/tag zloc) "<" (z/string zloc) ">"))
 
 (defn calculate-spaces
-  [context]
+  [zloc]
   (let [apply-rules (some-fn rule/ns-args
                              rule/ns-block-args
                              rule/do-args
-                             rule/defn-function-name
                              rule/defn-args-list
+                             rule/defn-body
                              rule/map-key-values
                              rule/first-child
                              rule/default)]
-    (apply-rules context)))
+    (apply-rules zloc)))
 
 (def includes?
   #?(:clj (fn [^String a ^String b] (.contains a b))
@@ -53,7 +53,7 @@
   (subs s (inc (.lastIndexOf s "\n"))))
 
 (defn- get-base-indentation
-  [{:keys [zloc]}]
+  [zloc]
   (-> zloc prior-line-string last-line-in-string count))
 
 (defn- add-spaces
@@ -67,37 +67,24 @@
 (declare transform)
 
 (defn- process-children
-  [{:keys [zloc]
-    :as context}]
-  (let [base-indentation (get-base-indentation context)]
+  [zloc]
+  (let [base-indentation (get-base-indentation zloc)]
     (if-let [first-child (z/down zloc)]
-      (loop [child first-child
-             parent-context context
-             index 0]
-        (let [adjusted-parent-context (update parent-context :children (fnil conj []) child)
-              adjusted-child-context {:zloc child
-                                      :index index
-                                      :parent adjusted-parent-context}
-              adjusted-child (add-spaces child base-indentation
-                                         (calculate-spaces adjusted-child-context))
-              adjusted-child-context (assoc adjusted-child-context :zloc adjusted-child)
-              adjusted-child (transform adjusted-child-context)
-              adjusted-parent-context (-> adjusted-parent-context
-                                          (update :children pop)
-                                          (update :children conj adjusted-child))
+      (loop [child first-child]
+        (let [adjusted-child (add-spaces child base-indentation (calculate-spaces child))
+              adjusted-child (transform adjusted-child)
               next-child (z/right adjusted-child)]
           (if (z/end? next-child)
             (z/up* adjusted-child)
-            (recur next-child adjusted-parent-context (inc index)))))
+            (recur next-child))))
       zloc)))
 
 (defn transform
-  [{:keys [zloc]
-    :as context}]
+  [zloc]
   (cond
   ;; TODO: this only looks at the first node, needs to be fixed
-    (instance? FormsNode zloc) (transform {:zloc (z/of-node zloc)})
+    (instance? FormsNode zloc) (transform (z/of-node zloc))
 
-    (z/down zloc) (process-children context)
+    (z/down zloc) (process-children zloc)
 
     :else zloc))

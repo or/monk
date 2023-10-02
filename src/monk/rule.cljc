@@ -11,90 +11,87 @@
          (-> zloc z/sexpr (= token)))))
 
 (defn- is-list?
-  [{:keys [zloc]}]
+  [zloc]
   (some-> zloc z/tag (= :list)))
 
 (defn- is-vector?
-  [{:keys [zloc]}]
+  [zloc]
   (some-> zloc z/tag (= :vector)))
 
 (defn- is-map?
-  [{:keys [zloc]}]
+  [zloc]
   (some-> zloc z/tag (= :map)))
 
 (defn- is-first-child-suffices?
-  [p? {:keys [parent]
-       :as context}]
-  (and (p? context)
-       (not-any? p? (some-> parent :children))))
+  [p? zloc]
+  (and (p? zloc)
+       #_(not-any? p? (some-> parent :children))))
+
+(defn- index
+  [zloc]
+  (dec (count (take-while some? (iterate z/left zloc)))))
 
 (defn ns-args
-  [{:keys [parent
-           index]}]
-  (when (and (is-list? parent)
-             (some-> parent :children first (is-token? 'ns))
-             (< 1 index))
+  [zloc]
+  (when (and (is-list? (z/up zloc))
+             (some-> zloc z/leftmost (is-token? 'ns))
+             (< 1 (index zloc)))
     {:newlines 1
      :spaces 2}))
 
 (defn ns-block-args
-  [{:keys [parent
-           index]}]
-  (let [parent-parent (:parent parent)]
-    (when (and (is-list? parent-parent)
-               (some-> parent-parent :children first (is-token? 'ns))
+  [zloc]
+  (let [parent (z/up zloc)]
+    (when (and (is-list? parent)
+               (some-> parent z/leftmost (is-token? 'ns))
                (is-list? parent)
-               (some-> parent :children first (is-token? #{:require :import :use}))
-               (pos? index))
+               (some-> zloc z/leftmost (is-token? #{:require :import :use}))
+               (pos? (index zloc)))
       {:newlines 1
        :spaces 1})))
 
 (defn do-args
-  [{:keys [parent
-           index]}]
-  (when (and (is-list? parent)
-             (some-> parent :children first (is-token? #{'do 'doall}))
-             (pos? index))
+  [zloc]
+  (when (and (is-list? (z/up zloc))
+             (some-> zloc z/leftmost (is-token? #{'do 'doall}))
+             (pos? (index zloc)))
     {:newlines 1
      :spaces 2}))
 
 (defn map-key-values
-  [{:keys [parent
-           index]}]
-  (when (and (is-map? parent)
-             (pos? index))
-    (if (even? index)
-      {:newlines 1
-       :spaces 1}
-      {:newlines 0
-       :spaces 1})))
+  [zloc]
+  (let [idx (index zloc)]
+    (when (and (is-map? (z/up zloc))
+               (pos? idx))
+      (if (even? idx)
+        {:newlines 1
+         :spaces 1}
+        {:newlines 0
+         :spaces 1}))))
 
 (defn first-child
-  [{:keys [index]}]
-  (when (and index
-             (zero? index))
+  [zloc]
+  (when (zero? (index zloc))
     {:newlines 0
      :spaces 0}))
 
 (defn default
-  [_context]
+  [_zloc]
   {:newlines 0
    :spaces 1})
 
-(defn defn-function-name
-  [{:keys [parent]
-    :as context}]
-  #_(when (and (is-list? parent)
-               (some-> parent :children first (is-token? #{'defn 'defn-}))
-               (is-first-child-suffices? is-list? context))
-      {:newlines 1
-       :spaces 2}))
-
 (defn defn-args-list
-  [{:keys [parent]
-    :as context}]
-  (when (and (is-list? parent)
-             (some-> parent :children first (is-token? #{'defn 'defn-}))
-             (is-first-child-suffices? is-vector? context))
+  [zloc]
+  (when (and (is-list? (z/up zloc))
+             (some-> zloc z/leftmost (is-token? #{'defn 'defn-}))
+             (is-first-child-suffices? is-vector? zloc))
+    {:newlines 1
+     :spaces 2}))
+
+(defn defn-body
+  [zloc]
+  (when (and (is-list? (z/up zloc))
+             (some-> zloc z/leftmost (is-token? #{'defn 'defn-}))
+             (some is-vector? (take-while some? (iterate z/left zloc))))
     {:newlines 1
      :spaces 2}))
