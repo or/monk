@@ -22,14 +22,23 @@
   [zloc]
   (some-> zloc z/tag (= :map)))
 
+(defn- is-string?
+  [zloc]
+  (and (-> zloc z/tag #{:token :multi-line})
+       (-> zloc z/sexpr string?)))
+
+(defn- siblings-left-of
+  [zloc]
+  (take-while some? (iterate z/left (z/left zloc))))
+
 (defn- is-first-child-suffices?
   [p? zloc]
   (and (p? zloc)
-       #_(not-any? p? (some-> parent :children))))
+       (not-any? p? (siblings-left-of zloc))))
 
 (defn- index
   [zloc]
-  (dec (count (take-while some? (iterate z/left zloc)))))
+  (count (siblings-left-of zloc)))
 
 (defn ns-args
   [zloc]
@@ -79,6 +88,14 @@
   [_zloc]
   {:newlines 0
    :spaces 1})
+
+(defn defn-doc-string
+  [zloc]
+  (when (and (is-list? (z/up zloc))
+             (some-> zloc z/leftmost (is-token? #{'defn 'defn-}))
+             (is-first-child-suffices? is-string? zloc))
+    {:newlines 1
+     :spaces 2}))
 
 (defn defn-args-list
   [zloc]

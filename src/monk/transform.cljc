@@ -17,6 +17,7 @@
   (let [apply-rules (some-fn rule/ns-args
                              rule/ns-block-args
                              rule/do-args
+                             rule/defn-doc-string
                              rule/defn-args-list
                              rule/defn-body
                              rule/map-key-values

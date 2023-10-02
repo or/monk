@@ -41,17 +41,17 @@
     |  (some-stuff arg1 arg2)
     |  (more-stuff arg3))"
 
-    #_#_#_#_#_"(defn ^{:meta true} function-name
+    "(defn ^{:meta true} function-name
     |  \"Some doc string\"
     |  [arg1 arg2]
     |  (body))"
 
-            "(defn ^:private ^:and-other function-name
+    "(defn ^:private ^:and-other function-name
     |  \"Some doc string\"
     |  [arg1 arg2]
     |  (body))"
 
-          "(defn function-name
+    "(defn function-name
     |  \"Some doc string
     |
     |   with
@@ -59,7 +59,7 @@
     |  [arg1 arg2]
     |  (body))"
 
-        "(defn
+    #_#_"(defn
     |  ^{:multiple :meta
     |    :data :values}
     |  function-name
