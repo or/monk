@@ -71,8 +71,8 @@
     |  (some-stuff foo)
     |  (more-stuff))"
 
-    #_"(let [foo :bar
-           another :thing]
+    "(let [foo :bar
+    |      another :thing]
     |  (some-stuff foo)
     |  (more-stuff another))"
 

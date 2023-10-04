@@ -15,6 +15,10 @@
   [zloc]
   (some-> zloc z/tag (= :list)))
 
+(defn- is-vector?
+  [zloc]
+  (some-> zloc z/tag (= :vector)))
+
 (defn- is-symbol?
   [zloc]
   (and (some-> zloc z/tag (= :token))
@@ -116,4 +120,15 @@
    [(cond
       (= index 1) [0 1]
       :else [1 2])
+
+(defprocessor let-bindings
+  ([zloc]
+   (and (is-vector? zloc)
+        (some-> zloc z/left (is-token? 'let))))
+
+  ([{:keys [index]
+     :as context}]
+   [(if (even? index)
+      [1 1]
+      [0 1])
     context]))
