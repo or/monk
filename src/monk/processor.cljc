@@ -28,6 +28,14 @@
   [zloc]
   (some-> zloc z/tag (= :meta)))
 
+(defn- siblings-left-of
+  [zloc]
+  (take-while some? (iterate z/left (z/left zloc))))
+
+(defn- effective-index
+  [zloc]
+  (count (siblings-left-of zloc)))
+
 (defprocessor default
   ([_zloc]
    true)
@@ -132,7 +140,8 @@
 (defprocessor let-bindings
   ([zloc]
    (and (is-vector? zloc)
-        (some-> zloc z/left (is-token? 'let))))
+        (some-> zloc z/leftmost (is-token? 'let))
+        (= (effective-index zloc) 1)))
 
   ([{:keys [index]
      :as context}]
@@ -144,7 +153,8 @@
 (defn- letfn-binding?
   [zloc]
   (and (is-vector? zloc)
-       (some-> zloc z/left (is-token? 'letfn))))
+       (some-> zloc z/leftmost (is-token? 'letfn))
+       (= (effective-index zloc) 1)))
 
 (defprocessor letfn-bindings
   ([zloc]
