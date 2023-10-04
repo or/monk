@@ -19,12 +19,8 @@
   ([_zloc]
    true)
 
-  ([{:keys [index]
-     :as context}]
-   [(if (zero? index)
-      [0 0]
-      [0 1])
-    context]))
+  ([context]
+   [[0 1] context]))
 
 (defprocessor map-form
   ([zloc]
@@ -33,7 +29,6 @@
   ([{:keys [index]
      :as context}]
    [(cond
-      (zero? index) [0 0]
       (even? index) [1 1]
       :else [0 1])
     context]))
@@ -46,7 +41,6 @@
   ([{:keys [index]
      :as context}]
    [(cond
-      (zero? index) [0 0]
       (= index 1) [0 1]
       :else [1 2])
     context]))
@@ -57,19 +51,13 @@
         (is-token? (z/down zloc) #{:require :import :use})
         (some-> zloc z/leftmost (is-token? 'ns))))
 
-  ([{:keys [index]
-     :as context}]
-   [(if (zero? index) [0 0]
-        [1 1])
-    context]))
+  ([context]
+   [[1 1] context]))
 
 (defprocessor do-form
   ([zloc]
    (and (is-list? zloc)
         (is-token? (z/down zloc) #{'do 'doall})))
 
-  ([{:keys [index]
-     :as context}]
-   [(if (zero? index) [0 0]
-        [1 2])
-    context]))
+  ([context]
+   [[1 2] context]))

@@ -79,7 +79,9 @@
           (let [effective-context (assoc context
                                          :index index
                                          :zloc child)
-                [spaces new-context] (processor effective-context)
+                [spaces new-context] (if (zero? index)
+                                       [[0 0] context]
+                                       (processor effective-context))
                 adjusted-child (add-spaces child base-indentation spaces)
                 adjusted-child (transform adjusted-child)
                 next-child (z/right adjusted-child)]
