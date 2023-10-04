@@ -20,7 +20,11 @@
     |  (:require
     |   [clojure.string :as str]))"
 
-    ;; map
+    "(ns foo.bar
+    |  (:import
+    |   [some.namespace Class1 Class2]))"
+
+    ; map
     "{:key :value
     | :another-key (another-value arg1 arg2)}"
 
@@ -42,6 +46,19 @@
     |  (more-stuff arg3))"
 
     "(defn function-name
+    |  \"Some doc string
+    |
+    |   with
+    |   multiple lines.\"
+    |  [arg1 arg2]
+    |  (body))"
+
+    "(defn- function-name
+    |  [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2)
+    |  (more-stuff arg3))"
+
+    "(defn- function-name
     |  \"Some doc string
     |
     |   with
@@ -101,12 +118,20 @@
     |  (function-name 1 2 3)
     |  (more-stuff))"
 
-    ;; if
-    "(if (some-check 1 2)
+    ; when-not
+    "(when-not (some-check 1 2)
+    |  5)"
+
+    "(when-not (some-check 1 2)
+    |  (function-name 1 2 3)
+    |  (more-stuff))"
+
+    ; if-not
+    "(if-not (some-check 1 2)
     |  5
     |  6)"
 
-    "(if (some-check 1 2)
+    "(if-not (some-check 1 2)
     |  (function-name 1 2 3)
     |  (more-stuff))"
 
