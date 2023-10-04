@@ -1,0 +1,2 @@
+{:lint-as {monk.macro/defprocessor clojure.core/defn}
+ :linters {:conflicting-fn-arity {:level :off}}}
