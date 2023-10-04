@@ -136,5 +136,18 @@
     |    (assoc :another :value))
     |  (assoc :key :whatever))"
 
+    ; ->>
+    "(->> some-list
+    |  (map :key)
+    |  (filter identity)
+    |  count)"
+
+    "(-> some-list
+    |  (conj :whatever)
+    |  (->>
+    |    (map :key)
+    |    (filter identity))
+    |  count)"
+
     ;;
     ))
