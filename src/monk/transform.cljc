@@ -62,6 +62,8 @@
    processor/def-form
    processor/let-form
    processor/let-bindings
+   processor/letfn-bindings
+   processor/letfn-binding-function
    processor/map-form
    processor/default])
 

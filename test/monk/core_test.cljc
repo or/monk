@@ -76,5 +76,19 @@
     |  (some-stuff foo)
     |  (more-stuff another))"
 
+    ; letfn
+    "(letfn [(function-name [arg1 arg2]
+    |          (do-something))]
+    |  (function-name 1 2 3)
+    |  (more-stuff))"
+
+    "(letfn [(function-name [arg1 arg2]
+    |          (do-something arg1 arg2)
+    |          (do-other-things))
+    |        (function-name-2 [arg1]
+    |          (do-something-else arg1))]
+    |  (function-name 1 2 3)
+    |  (function-name-2 5 6))"
+
     ;;
     ))

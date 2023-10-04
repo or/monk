@@ -113,7 +113,7 @@
 (defprocessor let-form
   ([zloc]
    (and (is-list? zloc)
-        (is-token? (z/down zloc) 'let)))
+        (is-token? (z/down zloc) #{'let 'letfn})))
 
   ([{:keys [index]
      :as context}]
@@ -132,4 +132,28 @@
    [(if (even? index)
       [1 1]
       [0 1])
+    context]))
+
+(defn- letfn-binding?
+  [zloc]
+  (and (is-vector? zloc)
+       (some-> zloc z/left (is-token? 'letfn))))
+
+(defprocessor letfn-bindings
+  ([zloc]
+   (letfn-binding? zloc))
+
+  ([context]
+   [[1 1] context]))
+
+(defprocessor letfn-binding-function
+  ([zloc]
+   (and (is-list? zloc)
+        (letfn-binding? (z/up zloc))))
+
+  ([{:keys [index]
+     :as context}]
+   [(if (= index 1)
+      [0 1]
+      [1 2])
     context]))
