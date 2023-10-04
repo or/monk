@@ -228,3 +228,15 @@
       [0 1]
       [1 2])
     context]))
+
+(defprocessor as->-form
+  ([zloc]
+   (and (is-list? zloc)
+        (is-token? (z/down zloc) 'as->)))
+
+  ([{:keys [zloc]
+     :as context}]
+   [(if (< (effective-index zloc) 3)
+      [0 1]
+      [1 2])
+    context]))

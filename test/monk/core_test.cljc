@@ -149,5 +149,29 @@
     |    (filter identity))
     |  count)"
 
+    ; as->
+    "(as-> some-map name
+    |  (assoc :key name)
+    |  (assoc :another name))"
+
+    ; TODO: line break after the first argument if necessary
+    #_"(as-> (-> some-map
+    |        (assoc :key :value)
+    |        (assoc :another :value))
+    |      name
+    |  (assoc :key name))"
+
+    "(-> some-map
+    |  (as-> name
+    |    (assoc :key name)
+    |    (assoc :another name))
+    |  (assoc :key :whatever))"
+
+    "(-> some-map
+    |  (assoc :key :whatever)
+    |  (as-> name
+    |    (assoc :key name)
+    |    (assoc :another name))
+    |  (assoc :key :whatever))"
     ;;
     ))

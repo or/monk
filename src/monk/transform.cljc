@@ -70,6 +70,7 @@
    processor/vector-form
    processor/->-form
    processor/->>-form
+   processor/as->-form
    processor/default])
 
 (defn pick-processor
