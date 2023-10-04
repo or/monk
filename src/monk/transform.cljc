@@ -3,6 +3,7 @@
    #?(:cljs [clojure.string :as str])
    [monk.edit :as edit]
    [monk.processor :as processor]
+   [monk.util :as util]
    [rewrite-clj.node :as n]
    [rewrite-clj.zip :as z])
   (:import
@@ -76,9 +77,9 @@
    processor/default])
 
 (defn pick-processor
-  [zloc]
+  [context]
   (first (keep (fn [{:keys [detector processor]}]
-                 (when (detector zloc)
+                 (when (detector context)
                    processor))
                processors)))
 
@@ -86,14 +87,14 @@
   [zloc]
   (let [base-indentation (get-base-indentation zloc)]
     (if-let [first-child (z/down zloc)]
-      (let [processor (pick-processor zloc)]
+      (let [processor (pick-processor {:zloc zloc
+                                       :index (util/effective-index zloc)})]
         (loop [child first-child
-               context {}
-               index 0]
+               context {}]
           (let [effective-context (assoc context
-                                         :index index
+                                         :index (util/effective-index child)
                                          :zloc child)
-                [spaces new-context] (if (zero? index)
+                [spaces new-context] (if (= child first-child)
                                        [[0 0] context]
                                        (processor effective-context))
                 adjusted-child (add-spaces child base-indentation spaces)
@@ -101,7 +102,7 @@
                 next-child (z/right adjusted-child)]
             (if (z/end? next-child)
               (z/up* adjusted-child)
-              (recur next-child new-context (inc index))))))
+              (recur next-child new-context)))))
       zloc)))
 
 (defn transform
