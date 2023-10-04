@@ -60,6 +60,7 @@
    processor/do-form
    processor/defn-form
    processor/def-form
+   processor/let-form
    processor/map-form
    processor/default])
 

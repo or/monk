@@ -105,3 +105,15 @@
       (cond-> context
         (and (not seen-name?)
              likely-function-name?) (assoc :seen-name? true))])))
+
+(defprocessor let-form
+  ([zloc]
+   (and (is-list? zloc)
+        (is-token? (z/down zloc) 'let)))
+
+  ([{:keys [index]
+     :as context}]
+   [(cond
+      (= index 1) [0 1]
+      :else [1 2])
+    context]))

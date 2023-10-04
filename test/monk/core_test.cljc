@@ -66,5 +66,15 @@
     "(def ^:private var-name
     |  (some-stuff arg1 arg2))"
 
+    ; let
+    "(let [foo :bar]
+    |  (some-stuff foo)
+    |  (more-stuff))"
+
+    #_"(let [foo :bar
+           another :thing]
+    |  (some-stuff foo)
+    |  (more-stuff another))"
+
     ;;
     ))
