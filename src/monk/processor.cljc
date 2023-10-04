@@ -46,6 +46,13 @@
       [0 1])
     context]))
 
+(defprocessor vector-form
+  ([zloc]
+   (-> zloc z/tag (= :vector)))
+
+  ([context]
+   [[0 1] context]))
+
 (defprocessor ns-form
   ([zloc]
    (and (is-list? zloc)

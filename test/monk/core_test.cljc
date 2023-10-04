@@ -24,7 +24,10 @@
     "{:key :value
     | :another-key (another-value arg1 arg2)}"
 
-    ;; do
+    ; vector
+    "[1 2 3 4]"
+
+    ; do
     "(do
     |  (one-thing)
     |  (and-another-thing))"

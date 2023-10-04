@@ -67,6 +67,7 @@
    processor/when-form
    processor/if-form
    processor/map-form
+   processor/vector-form
    processor/default])
 
 (defn pick-processor
