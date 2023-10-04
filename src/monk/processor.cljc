@@ -41,9 +41,9 @@
 
   ([{:keys [index]
      :as context}]
-   [(cond
-      (even? index) [1 1]
-      :else [0 1])
+   [(if (even? index)
+      [1 1]
+      [0 1])
     context]))
 
 (defprocessor ns-form
@@ -53,9 +53,9 @@
 
   ([{:keys [index]
      :as context}]
-   [(cond
-      (= index 1) [0 1]
-      :else [1 2])
+   [(if (= index 1)
+      [0 1]
+      [1 2])
     context]))
 
 (defprocessor ns-block-form
@@ -117,9 +117,10 @@
 
   ([{:keys [index]
      :as context}]
-   [(cond
-      (= index 1) [0 1]
-      :else [1 2])
+   [(if (= index 1)
+      [0 1]
+      [1 2])
+    context]))
 
 (defprocessor let-bindings
   ([zloc]
