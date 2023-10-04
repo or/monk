@@ -110,5 +110,31 @@
     |  (function-name 1 2 3)
     |  (more-stuff))"
 
+    ;; ->
+    ;; TODO: inline form, if newlines are not needed
+    #_"(-> some-map :key1 :key2 :key3 (assoc :key :value))"
+
+    "(-> some-map
+    |  (assoc :key :value)
+    |  (assoc :another :value))"
+
+    "(-> (-> some-map
+    |      (assoc :key :value)
+    |      (assoc :another :value))
+    |  (assoc :key :whatever))"
+
+    "(-> some-map
+    |  (->
+    |    (assoc :key :value)
+    |    (assoc :another :value))
+    |  (assoc :key :whatever))"
+
+    "(-> some-map
+    |  (assoc :key :whatever)
+    |  (->
+    |    (assoc :key :value)
+    |    (assoc :another :value))
+    |  (assoc :key :whatever))"
+
     ;;
     ))

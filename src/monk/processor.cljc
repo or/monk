@@ -34,7 +34,13 @@
 
 (defn- effective-index
   [zloc]
-  (count (siblings-left-of zloc)))
+  (let [naive-index (count (siblings-left-of zloc))]
+    (if-let [parent (z/up zloc)]
+      (if (and (some-> parent z/leftmost (is-token? '->))
+               (< 1 (effective-index parent)))
+        (inc naive-index)
+        naive-index)
+      naive-index)))
 
 (defprocessor default
   ([_zloc]
@@ -195,6 +201,18 @@
   ([{:keys [index]
      :as context}]
    [(if (= index 1)
+      [0 1]
+      [1 2])
+    context]))
+
+(defprocessor ->-form
+  ([zloc]
+   (and (is-list? zloc)
+        (is-token? (z/down zloc) '->)))
+
+  ([{:keys [zloc]
+     :as context}]
+   [(if (= (effective-index zloc) 1)
       [0 1]
       [1 2])
     context]))
