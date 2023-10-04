@@ -110,8 +110,25 @@
     |  (function-name 1 2 3)
     |  (more-stuff))"
 
-    ;; ->
-    ;; TODO: inline form, if newlines are not needed
+    ; when-let
+    "(when-let [value (some-check 1 2)]
+    |  value)"
+
+    "(when-let [value (some-check 1 2)]
+    |  (function-name 1 2 3)
+    |  (more-stuff value))"
+
+    ; if-let
+    "(if-let [value (some-check 1 2)]
+    |  value
+    |  6)"
+
+    "(if-let [value (some-check 1 2)]
+    |  (function-name 1 2 3)
+    |  (more-stuff value))"
+
+    ; ->
+    ; TODO: inline form, if newlines are not needed
     #_"(-> some-map :key1 :key2 :key3 (assoc :key :value))"
 
     "(-> some-map

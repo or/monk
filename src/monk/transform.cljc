@@ -66,6 +66,8 @@
    processor/letfn-binding-function
    processor/when-form
    processor/if-form
+   processor/when-let-form
+   processor/if-let-form
    processor/map-form
    processor/vector-form
    processor/->-form
