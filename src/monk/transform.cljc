@@ -55,7 +55,10 @@
 (declare transform)
 
 (def processors
-  [processor/map-form
+  [processor/ns-form
+   processor/ns-block-form
+   processor/do-form
+   processor/map-form
    processor/default])
 
 (defn pick-processor

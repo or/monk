@@ -15,25 +15,22 @@
        (= (sut/reformat-string (prepare-str input))
           (prepare-str input))
 
-    ;; ;; ns
-    ;; "(ns foo.bar
-    ;; |  (:require
-    ;; |   [clojure.string :as str]))"
+    ; ns
+    "(ns foo.bar
+    |  (:require
+    |   [clojure.string :as str]))"
 
     ;; map
     "{:key :value
     | :another-key (another-value arg1 arg2)}"
 
-    ;; "{:key :value
-    ;; | :another-key :another-value}"
+    ;; do
+    "(do
+    |  (one-thing)
+    |  (and-another-thing))"
 
-    ;; ;; do
-    ;; "(do
-    ;; |  (one-thing)
-    ;; |  (and-another-thing))"
-
-    ;; "(doall
-    ;; |  (one-thing))"
+    "(doall
+    |  (one-thing))"
 
     ;; ;; defn
     ;; "(defn function-name
