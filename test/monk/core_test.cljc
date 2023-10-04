@@ -98,5 +98,14 @@
     |  (function-name 1 2 3)
     |  (more-stuff))"
 
+    ;; if
+    "(if (some-check 1 2)
+    |  5
+    |  6)"
+
+    "(if (some-check 1 2)
+    |  (function-name 1 2 3)
+    |  (more-stuff))"
+
     ;;
     ))
