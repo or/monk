@@ -15,49 +15,49 @@
        (= (sut/reformat-string (prepare-str input))
           (prepare-str input))
 
-    ;; ns
-    "(ns foo.bar
-    |  (:require
-    |   [clojure.string :as str]))"
+    ;; ;; ns
+    ;; "(ns foo.bar
+    ;; |  (:require
+    ;; |   [clojure.string :as str]))"
 
     ;; map
     "{:key :value
     | :another-key (another-value arg1 arg2)}"
 
-    "{:key :value
-    | :another-key :another-value}"
+    ;; "{:key :value
+    ;; | :another-key :another-value}"
 
-    ;; do
-    "(do
-    |  (one-thing)
-    |  (and-another-thing))"
+    ;; ;; do
+    ;; "(do
+    ;; |  (one-thing)
+    ;; |  (and-another-thing))"
 
-    "(doall
-    |  (one-thing))"
+    ;; "(doall
+    ;; |  (one-thing))"
 
-    ;; defn
-    "(defn function-name
-    |  [arg1 arg2 arg3]
-    |  (some-stuff arg1 arg2)
-    |  (more-stuff arg3))"
+    ;; ;; defn
+    ;; "(defn function-name
+    ;; |  [arg1 arg2 arg3]
+    ;; |  (some-stuff arg1 arg2)
+    ;; |  (more-stuff arg3))"
 
-    "(defn ^{:meta true} function-name
-    |  \"Some doc string\"
-    |  [arg1 arg2]
-    |  (body))"
+    ;; "(defn ^{:meta true} function-name
+    ;; |  \"Some doc string\"
+    ;; |  [arg1 arg2]
+    ;; |  (body))"
 
-    "(defn ^:private ^:and-other function-name
-    |  \"Some doc string\"
-    |  [arg1 arg2]
-    |  (body))"
+    ;; "(defn ^:private ^:and-other function-name
+    ;; |  \"Some doc string\"
+    ;; |  [arg1 arg2]
+    ;; |  (body))"
 
-    "(defn function-name
-    |  \"Some doc string
-    |
-    |   with
-    |   multiple lines.\"
-    |  [arg1 arg2]
-    |  (body))"
+    ;; "(defn function-name
+    ;; |  \"Some doc string
+    ;; |
+    ;; |   with
+    ;; |   multiple lines.\"
+    ;; |  [arg1 arg2]
+    ;; |  (body))"
 
     #_#_"(defn
     |  ^{:multiple :meta

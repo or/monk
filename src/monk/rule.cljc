@@ -18,10 +18,6 @@
   [zloc]
   (some-> zloc z/tag (= :vector)))
 
-(defn- is-map?
-  [zloc]
-  (some-> zloc z/tag (= :map)))
-
 (defn- is-string?
   [zloc]
   (and (-> zloc z/tag #{:token :multi-line})
@@ -67,27 +63,11 @@
     {:newlines 1
      :spaces 2}))
 
-(defn map-key-values
-  [zloc]
-  (let [idx (index zloc)]
-    (when (and (is-map? (z/up zloc))
-               (pos? idx))
-      (if (even? idx)
-        {:newlines 1
-         :spaces 1}
-        {:newlines 0
-         :spaces 1}))))
-
 (defn first-child
   [zloc]
   (when (zero? (index zloc))
     {:newlines 0
      :spaces 0}))
-
-(defn default
-  [_zloc]
-  {:newlines 0
-   :spaces 1})
 
 (defn defn-doc-string
   [zloc]

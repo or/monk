@@ -2,7 +2,7 @@
   (:require
    #?(:cljs [clojure.string :as str])
    [monk.edit :as edit]
-   [monk.rule :as rule]
+   [monk.processor :as processor]
    [rewrite-clj.node :as n]
    [rewrite-clj.zip :as z])
   (:import
@@ -11,19 +11,6 @@
 (defn pp
   [zloc]
   (str (z/tag zloc) "<" (z/string zloc) ">"))
-
-(defn calculate-spaces
-  [zloc]
-  (let [apply-rules (some-fn rule/ns-args
-                             rule/ns-block-args
-                             rule/do-args
-                             rule/defn-doc-string
-                             rule/defn-args-list
-                             rule/defn-body
-                             rule/map-key-values
-                             rule/first-child
-                             rule/default)]
-    (apply-rules zloc)))
 
 (def includes?
   #?(:clj (fn [^String a ^String b] (.contains a b))
@@ -71,19 +58,28 @@
   [zloc]
   (let [base-indentation (get-base-indentation zloc)]
     (if-let [first-child (z/down zloc)]
-      (loop [child first-child]
-        (let [adjusted-child (add-spaces child base-indentation (calculate-spaces child))
-              adjusted-child (transform adjusted-child)
-              next-child (z/right adjusted-child)]
-          (if (z/end? next-child)
-            (z/up* adjusted-child)
-            (recur next-child))))
+      (let [processor (cond
+                        (-> zloc z/tag (= :map)) processor/map-form
+                        :else processor/default)]
+        (loop [child first-child
+               context {}
+               index 0]
+          (let [effective-context (assoc context
+                                         :index index
+                                         :zloc child)
+                [spaces new-context] (processor effective-context)
+                adjusted-child (add-spaces child base-indentation spaces)
+                adjusted-child (transform adjusted-child)
+                next-child (z/right adjusted-child)]
+            (if (z/end? next-child)
+              (z/up* adjusted-child)
+              (recur next-child new-context (inc index))))))
       zloc)))
 
 (defn transform
   [zloc]
   (cond
-  ;; TODO: this only looks at the first node, needs to be fixed
+    ;; TODO: this only looks at the first node, needs to be fixed
     (instance? FormsNode zloc) (transform (z/of-node zloc))
 
     (z/down zloc) (process-children zloc)
