@@ -54,13 +54,22 @@
 
 (declare transform)
 
+(def processors
+  [processor/map-form
+   processor/default])
+
+(defn pick-processor
+  [zloc]
+  (first (keep (fn [{:keys [detector processor]}]
+                 (when (detector zloc)
+                   processor))
+               processors)))
+
 (defn- process-children
   [zloc]
   (let [base-indentation (get-base-indentation zloc)]
     (if-let [first-child (z/down zloc)]
-      (let [processor (cond
-                        (-> zloc z/tag (= :map)) processor/map-form
-                        :else processor/default)]
+      (let [processor (pick-processor zloc)]
         (loop [child first-child
                context {}
                index 0]
