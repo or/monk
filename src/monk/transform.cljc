@@ -64,6 +64,7 @@
    processor/let-bindings
    processor/letfn-bindings
    processor/letfn-binding-function
+   processor/when-form
    processor/map-form
    processor/default])
 

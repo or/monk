@@ -157,3 +157,15 @@
       [0 1]
       [1 2])
     context]))
+
+(defprocessor when-form
+  ([zloc]
+   (and (is-list? zloc)
+        (is-token? (z/down zloc) #{'when 'when-not})))
+
+  ([{:keys [index]
+     :as context}]
+   [(if (= index 1)
+      [0 1]
+      [1 2])
+    context]))

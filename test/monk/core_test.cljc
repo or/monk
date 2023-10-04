@@ -90,5 +90,13 @@
     |  (function-name 1 2 3)
     |  (function-name-2 5 6))"
 
+    ; when
+    "(when (some-check 1 2)
+    |  5)"
+
+    "(when (some-check 1 2)
+    |  (function-name 1 2 3)
+    |  (more-stuff))"
+
     ;;
     ))
