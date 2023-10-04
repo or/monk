@@ -15,6 +15,15 @@
   [zloc]
   (some-> zloc z/tag (= :list)))
 
+(defn- is-symbol?
+  [zloc]
+  (and (some-> zloc z/tag (= :token))
+       (symbol? (z/sexpr zloc))))
+
+(defn- is-meta?
+  [zloc]
+  (some-> zloc z/tag (= :meta)))
+
 (defprocessor default
   ([_zloc]
    true)
@@ -61,3 +70,21 @@
 
   ([context]
    [[1 2] context]))
+
+(defprocessor defn-form
+  ([zloc]
+   (and (is-list? zloc)
+        (is-token? (z/down zloc) #{'defn 'defn-})))
+
+  ([{:keys [zloc seen-name?]
+     :as context}]
+   ;; TODO: this needs more logic for the metadata
+   ;; TODO: multi arity
+   (let [likely-function-name? (or (is-symbol? zloc)
+                                   (is-meta? zloc))]
+     [(cond
+        seen-name? [1 2]
+        :else [0 1])
+      (cond-> context
+        (and (not seen-name?)
+             likely-function-name?) (assoc :seen-name? true))])))

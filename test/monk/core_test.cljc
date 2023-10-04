@@ -32,39 +32,26 @@
     "(doall
     |  (one-thing))"
 
-    ;; ;; defn
-    ;; "(defn function-name
-    ;; |  [arg1 arg2 arg3]
-    ;; |  (some-stuff arg1 arg2)
-    ;; |  (more-stuff arg3))"
+    ; defn
+    "(defn function-name
+    |  [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2)
+    |  (more-stuff arg3))"
 
-    ;; "(defn ^{:meta true} function-name
-    ;; |  \"Some doc string\"
-    ;; |  [arg1 arg2]
-    ;; |  (body))"
-
-    ;; "(defn ^:private ^:and-other function-name
-    ;; |  \"Some doc string\"
-    ;; |  [arg1 arg2]
-    ;; |  (body))"
-
-    ;; "(defn function-name
-    ;; |  \"Some doc string
-    ;; |
-    ;; |   with
-    ;; |   multiple lines.\"
-    ;; |  [arg1 arg2]
-    ;; |  (body))"
-
-    #_#_"(defn
-    |  ^{:multiple :meta
-    |    :data :values}
-    |  function-name
-    |  \"Some doc string\"
+    "(defn function-name
+    |  \"Some doc string
+    |
+    |   with
+    |   multiple lines.\"
     |  [arg1 arg2]
     |  (body))"
 
-      "(defn function-name
+    "(defn ^:private ^String function-name
+    |  [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2)
+    |  (more-stuff arg3))"
+
+    #_"(defn function-name
     |  \"Some doc string\"
     |  [arg1
     |   arg2
