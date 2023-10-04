@@ -45,7 +45,7 @@
   (-> zloc prior-line-string last-line-in-string count))
 
 (defn- add-spaces
-  [zloc base-indentation {:keys [newlines spaces]}]
+  [zloc base-indentation [newlines spaces]]
   (let [spaces (cond-> spaces
                  (pos? newlines) (+ base-indentation))]
     (-> zloc

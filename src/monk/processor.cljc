@@ -12,10 +12,8 @@
  ([{:keys [index]
     :as context}]
   [(if (zero? index)
-     {:newlines 0
-      :spaces 0}
-     {:newlines 0
-      :spaces 1})
+     [0 0]
+     [0 1])
    context]))
 
 (defprocessor
@@ -27,10 +25,7 @@
  ([{:keys [index]
     :as context}]
   [(cond
-     (zero? index) {:newlines 0
-                    :spaces 0}
-     (even? index) {:newlines 1
-                    :spaces 1}
-     :else {:newlines 0
-            :spaces 1})
+     (zero? index) [0 0]
+     (even? index) [1 1]
+     :else [0 1])
    context]))
