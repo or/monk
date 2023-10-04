@@ -59,6 +59,7 @@
    processor/ns-block-form
    processor/do-form
    processor/defn-form
+   processor/def-form
    processor/map-form
    processor/default])
 

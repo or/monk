@@ -88,3 +88,20 @@
       (cond-> context
         (and (not seen-name?)
              likely-function-name?) (assoc :seen-name? true))])))
+
+(defprocessor def-form
+  ([zloc]
+   (and (is-list? zloc)
+        (is-token? (z/down zloc) 'def)))
+
+  ([{:keys [zloc seen-name?]
+     :as context}]
+   ;; TODO: this needs more logic for the metadata
+   (let [likely-function-name? (or (is-symbol? zloc)
+                                   (is-meta? zloc))]
+     [(cond
+        seen-name? [1 2]
+        :else [0 1])
+      (cond-> context
+        (and (not seen-name?)
+             likely-function-name?) (assoc :seen-name? true))])))

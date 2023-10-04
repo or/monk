@@ -59,5 +59,12 @@
     |    :as multi-line-destructuring-or-long}]
     |  (body))"
 
+    ; def
+    "(def var-name
+    |  (some-stuff arg1 arg2))"
+
+    "(def ^:private var-name
+    |  (some-stuff arg1 arg2))"
+
     ;;
     ))
