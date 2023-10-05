@@ -4,7 +4,8 @@
 
 (defn is-token?
   [zloc token]
-  (if (set? token)
+  (if (or (set? token)
+          (map? token))
     (and (-> zloc z/tag (= :token))
          (-> zloc z/sexpr token))
     (and (-> zloc z/tag (= :token))

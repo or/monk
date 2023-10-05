@@ -4,6 +4,22 @@
    [monk.util :as util]
    [rewrite-clj.zip :as z]))
 
+(def ^:private block-tokens
+  {'ns 1
+   'do 0
+   'doall 0
+   'let 1
+   'letfn 1
+   'when 1
+   'when-not 1
+   'when-let 1
+   'if 1
+   'if-not 1
+   'if-let 1
+   '-> 1
+   '->> 1
+   'as-> 2})
+
 (defprocessor default
   ([_context]
    true)
@@ -29,18 +45,6 @@
   ([context]
    [[0 1] context]))
 
-(defprocessor ns-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) 'ns)))
-
-  ([{:keys [index]
-     :as context}]
-   [(if (= index 1)
-      [0 1]
-      [1 2])
-    context]))
-
 (defprocessor ns-block-form
   ([{:keys [zloc]}]
    (and (util/is-list? zloc)
@@ -49,14 +53,6 @@
 
   ([context]
    [[1 1] context]))
-
-(defprocessor do-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) #{'do 'doall})))
-
-  ([context]
-   [[1 2] context]))
 
 (defprocessor defn-form
   ([{:keys [zloc]}]
@@ -92,18 +88,6 @@
       (cond-> context
         (and (not seen-name?)
              likely-function-name?) (assoc :seen-name? true))])))
-
-(defprocessor let-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) #{'let 'letfn})))
-
-  ([{:keys [index]
-     :as context}]
-   [(if (= index 1)
-      [0 1]
-      [1 2])
-    context]))
 
 (defprocessor let-bindings
   ([{:keys [zloc index]}]
@@ -144,86 +128,15 @@
       [1 2])
     context]))
 
-(defprocessor when-form
+(defprocessor block-form
   ([{:keys [zloc]}]
    (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) #{'when 'when-not})))
+        (util/is-token? (z/down zloc) block-tokens)))
 
-  ([{:keys [index]
+  ([{:keys [zloc index]
      :as context}]
-   [(if (= index 1)
-      [0 1]
-      [1 2])
-    context]))
-
-(defprocessor if-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) #{'if 'if-not})))
-
-  ([{:keys [index]
-     :as context}]
-   [(if (= index 1)
-      [0 1]
-      [1 2])
-    context]))
-
-(defprocessor when-let-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) 'when-let)))
-
-  ([{:keys [index]
-     :as context}]
-   [(if (= index 1)
-      [0 1]
-      [1 2])
-    context]))
-
-(defprocessor if-let-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) 'if-let)))
-
-  ([{:keys [index]
-     :as context}]
-   [(if (= index 1)
-      [0 1]
-      [1 2])
-    context]))
-
-(defprocessor ->-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) '->)))
-
-  ([{:keys [index]
-     :as context}]
-   [(if (= index 1)
-      [0 1]
-      [1 2])
-    context]))
-
-(defprocessor ->>-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) '->>)))
-
-  ([{:keys [index]
-     :as context}]
-   [(if (= index 1)
-      [0 1]
-      [1 2])
-    context]))
-
-(defprocessor as->-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) 'as->)))
-
-  ([{:keys [index]
-     :as context}]
-   [(if (< index 3)
-      [0 1]
-      [1 2])
+   [(let [num-args (-> zloc z/leftmost z/sexpr block-tokens)]
+      (if (<= index num-args)
+        [0 1]
+        [1 2]))
     context]))

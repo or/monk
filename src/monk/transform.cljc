@@ -56,24 +56,15 @@
 (declare transform)
 
 (def processors
-  [processor/ns-form
-   processor/ns-block-form
-   processor/do-form
+  [processor/ns-block-form
    processor/defn-form
    processor/def-form
-   processor/let-form
    processor/let-bindings
    processor/letfn-bindings
    processor/letfn-binding-function
-   processor/when-form
-   processor/if-form
-   processor/when-let-form
-   processor/if-let-form
    processor/map-form
    processor/vector-form
-   processor/->-form
-   processor/->>-form
-   processor/as->-form
+   processor/block-form
    processor/default])
 
 (defn pick-processor
