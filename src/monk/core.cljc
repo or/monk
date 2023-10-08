@@ -29,7 +29,7 @@
       transform-form))
 
 (defn reformat-string
-  [data]
+  [data & {:as _options}]
   (-> data
       p/parse-string-all
       reformat-form
