@@ -116,27 +116,28 @@
   ([context]
    [[1 1] context]))
 
+(defn- block-form*
+  [num-args {:keys [index]
+             :as context}]
+  [(if (<= index num-args)
+     [0 1]
+     [1 2])
+   context])
+
 (defprocessor letfn-binding-function
   ([{:keys [zloc]}]
    (and (util/is-list? zloc)
         (letfn-binding? {:zloc (z/up zloc)})))
 
-  ([{:keys [index]
-     :as context}]
-   [(if (= index 1)
-      [0 1]
-      [1 2])
-    context]))
+  ([context]
+   (block-form* 1 context)))
 
 (defprocessor block-form
   ([{:keys [zloc]}]
    (and (util/is-list? zloc)
         (util/is-token? (z/down zloc) block-tokens)))
 
-  ([{:keys [zloc index]
+  ([{:keys [zloc]
      :as context}]
-   [(let [num-args (-> zloc z/leftmost z/sexpr block-tokens)]
-      (if (<= index num-args)
-        [0 1]
-        [1 2]))
-    context]))
+   (let [num-args (-> zloc z/leftmost z/sexpr block-tokens)]
+     (block-form* num-args context))))
