@@ -215,5 +215,11 @@
     |    (assoc :key name)
     |    (assoc :another name))
     |  (assoc :key :whatever))"
+
+    ; cond->
+    "(cond-> some-map
+    |  something-truthy? (assoc :key :whatever)
+    |  another? (assoc :key :whatever))"
+
     ;;
     ))

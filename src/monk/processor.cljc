@@ -28,11 +28,14 @@
    [[0 1] context]))
 
 (defn- paired-element*
-  [{:keys [index]
+  [num-args
+   first-element-indentation
+   {:keys [index]
     :as context}]
-  [(if (even? index)
-     [1 1]
-     [0 1])
+  [(cond
+     (< index num-args) [0 1]
+     (even? (- index num-args)) [1 first-element-indentation]
+     :else [0 1])
    context])
 
 (defprocessor map-form
@@ -40,7 +43,7 @@
    (-> zloc z/tag (= :map)))
 
   ([context]
-   (paired-element* context)))
+   (paired-element* 0 1 context)))
 
 (defprocessor vector-form
   ([{:keys [zloc]}]
@@ -100,7 +103,7 @@
         (= index 1)))
 
   ([context]
-   (paired-element* context)))
+   (paired-element* 0 1 context)))
 
 (defn- letfn-binding?
   [{:keys [zloc index]}]
@@ -141,3 +144,11 @@
      :as context}]
    (let [num-args (-> zloc z/leftmost z/sexpr block-tokens)]
      (block-form* num-args context))))
+
+(defprocessor cond->-form
+  ([{:keys [zloc]}]
+   (and (util/is-list? zloc)
+        (util/is-token? (z/down zloc) #{'cond-> 'cond->>})))
+
+  ([context]
+   (paired-element* 2 2 context)))

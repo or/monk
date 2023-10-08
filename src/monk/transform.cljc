@@ -64,6 +64,7 @@
    processor/letfn-binding-function
    processor/map-form
    processor/vector-form
+   processor/cond->-form
    processor/block-form
    processor/default])
 
