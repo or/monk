@@ -263,5 +263,11 @@
     |  another? :something-else
     |  :else (calculate-default))"
 
+    ; case
+    "(case value
+    |  value (assoc :key :whatever)
+    |  another-value (assoc :key :whatever)
+    |  default-value)"
+
     ;;
     ))
