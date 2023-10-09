@@ -161,3 +161,11 @@
 
   ([context]
    (paired-element* 2 2 context)))
+
+(defprocessor cond-form
+  ([{:keys [zloc]}]
+   (and (util/is-list? zloc)
+        (util/is-token? (z/down zloc) 'cond)))
+
+  ([context]
+   (paired-element* 1 2 context)))

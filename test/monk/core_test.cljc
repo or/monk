@@ -257,5 +257,11 @@
     |  something-truthy? (assoc :key :whatever)
     |  another? (assoc :key :whatever))"
 
+    ; cond
+    "(cond
+    |  something-truthy? :whatever
+    |  another? :something-else
+    |  :else (calculate-default))"
+
     ;;
     ))
