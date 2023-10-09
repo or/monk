@@ -86,6 +86,17 @@
     "(def ^:private var-name
     |  (some-stuff arg1 arg2))"
 
+    ; top level
+    "(ns foobar)
+    |
+    |(defn function-name
+    |  [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2))
+    |
+    |(defn function-name-2
+    |  [arg1 arg2 arg3]
+    |  (some-other-stuff arg1 arg3))"
+
     ; let
     "(let [foo :bar]
     |  (some-stuff foo)

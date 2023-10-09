@@ -97,11 +97,23 @@
               (recur next-child new-context)))))
       zloc)))
 
+(defn- process-top-level
+  [zloc]
+  (loop [child zloc]
+    (let [spaces (if (= child zloc)
+                   [0 0]
+                   [2 0])
+          adjusted-child (add-spaces child 0 spaces)
+          adjusted-child (transform adjusted-child)
+          next-child (z/right adjusted-child)]
+      (if (z/end? next-child)
+        adjusted-child
+        (recur next-child)))))
+
 (defn transform
   [zloc]
   (cond
-    ;; TODO: this only looks at the first node, needs to be fixed
-    (instance? FormsNode zloc) (transform (z/of-node zloc))
+    (instance? FormsNode zloc) (process-top-level (z/of-node zloc))
 
     (z/down zloc) (process-children zloc)
 
