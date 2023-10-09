@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+if [ -z "$GRAALVM_HOME" ]; then
+    echo "Please set GRAALVM_HOME"
+    exit 1
+fi
+
+"$GRAALVM_HOME/bin/gu" install native-image || true
+
+export JAVA_HOME=$GRAALVM_HOME
+export PATH=$GRAALVM_HOME/bin:$PATH
+
+VERSION=$(cat resources/VERSION | head -n 1)
+
+clj -T:build uber
+
+"$GRAALVM_HOME/bin/native-image" \
+  -jar "target/monk-$VERSION-standalone.jar" \
+  --verbose \
+  --no-fallback \
+  --gc=epsilon \
+  -J-Xmx3g \
+  --features=clj_easy.graal_build_time.InitClojureClasses \
+  target/monk

@@ -1,10 +1,19 @@
 (ns monk.main
   (:require
+   [clojure.java.io :as io]
+   [clojure.string :as str]
    [clojure.tools.cli :as cli]
-   [monk.tool :as tool]))
+   [monk.tool :as tool])
+  (:gen-class))
 
-(def ^:const VERSION "0.0.1")
-(def ^:dynamic *command* "monk")
+(def ^:const VERSION
+  (-> (slurp (io/resource "VERSION"))
+      str/trim
+      (str/split #"\n")
+      first))
+
+(def ^:dynamic *command*
+  "monk")
 
 (def ^:private default-cli-options
   {:parallel? false
