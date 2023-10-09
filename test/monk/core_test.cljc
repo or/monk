@@ -107,6 +107,31 @@
     |  (some-stuff foo)
     |  (more-stuff another))"
 
+    ; doseq
+    "(doseq [index (range 100)]
+    |  (some-stuff index)
+    |  (more-stuff))"
+
+    ; loop
+    "(loop [foo :bar
+    |       another :thing]
+    |  (some-stuff foo)
+    |  (recur 2 3))"
+
+    ; for
+    "(for [x (range 100)
+    |      y (range 100)
+    |      :let [z (* x y)]
+    |      :when (even? z)]
+    |  [x y])"
+
+    "(for [x (range 100)
+    |      y (range 100)
+    |      :let [z (* x y)
+    |            foobar (inc z)]
+    |      :when (even? foobar)]
+    |  [x y])"
+
     ; letfn
     "(letfn [(function-name [arg1 arg2]
     |          (do-something))]

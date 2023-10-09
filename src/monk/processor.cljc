@@ -8,6 +8,9 @@
   {'ns 1
    'do 0
    'doall 0
+   'doseq 1
+   'loop 1
+   'for 1
    'let 1
    'letfn 1
    'when 1
@@ -96,11 +99,17 @@
         (and (not seen-name?)
              likely-function-name?) (assoc :seen-name? true))])))
 
-(defprocessor let-bindings
+(defprocessor let-like-bindings
   ([{:keys [zloc index]}]
-   (and (util/is-vector? zloc)
-        (some-> zloc z/leftmost (util/is-token? 'let))
-        (= index 1)))
+   (or (and (util/is-vector? zloc)
+            (some-> zloc z/leftmost (util/is-token? #{'let 'doseq 'loop 'for}))
+            (= index 1))
+       (and (util/is-vector? zloc)
+            (some-> zloc z/left (util/is-token? :let))
+            (some-> zloc z/up util/is-vector?)
+            (= (some-> zloc z/up z/left)
+               (some-> zloc z/up z/leftmost))
+            (some-> zloc z/up z/left (util/is-token? 'for)))))
 
   ([context]
    (paired-element* 0 1 context)))
