@@ -59,6 +59,7 @@
   [processor/ns-block-form
    processor/defn-form
    processor/def-form
+   processor/fn-form
    processor/let-like-bindings
    processor/letfn-bindings
    processor/letfn-binding-function

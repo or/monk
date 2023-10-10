@@ -79,6 +79,15 @@
     |    :as multi-line-destructuring-or-long}]
     |  (body))"
 
+    ; fn
+    "(fn [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2)
+    |  (more-stuff arg3))"
+
+    "(fn function-name [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2)
+    |  (more-stuff arg3))"
+
     ; def
     "(def var-name
     |  (some-stuff arg1 arg2))"

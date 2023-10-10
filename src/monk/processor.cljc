@@ -99,6 +99,23 @@
         (and (not seen-name?)
              likely-function-name?) (assoc :seen-name? true))])))
 
+(defprocessor fn-form
+  ([{:keys [zloc]}]
+   (and (util/is-list? zloc)
+        (util/is-token? (z/down zloc) 'fn)))
+
+  ([{:keys [zloc seen-args?]
+     :as context}]
+   ;; TODO: this needs more logic for the metadata
+   ;; TODO: multi arity
+   (let [likely-args? (util/is-vector? zloc)]
+     [(cond
+        seen-args? [1 2]
+        :else [0 1])
+      (cond-> context
+        (and (not seen-args?)
+             likely-args?) (assoc :seen-args? true))])))
+
 (defprocessor let-like-bindings
   ([{:keys [zloc index]}]
    (or (and (util/is-vector? zloc)
