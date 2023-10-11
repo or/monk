@@ -1,5 +1,6 @@
 (ns monk.util
   (:require
+   [clojure.string :as str]
    [rewrite-clj.zip :as z]))
 
 (defn is-token?
@@ -45,3 +46,7 @@
         (inc naive-index)
         naive-index)
       naive-index)))
+
+(defn multiline?
+  [zloc]
+  (str/includes? (z/string zloc) "\n"))

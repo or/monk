@@ -84,40 +84,52 @@
    processor/cond-form
    processor/cond->-form
    processor/block-form
+   processor/function-form
    processor/default])
 
 (defn pick-processor
   [context]
-  (first (keep (fn [{:keys [detector processor]}]
+  (first (keep (fn [{:keys [detector]
+                     :as processor}]
                  (when (detector context)
                    processor))
                processors)))
 
 (defn- process-children*
-  [zloc context base-indentation]
-  (if-let [first-child (z/down zloc)]
-    (let [processor (pick-processor {:zloc zloc
-                                     :index (util/effective-index zloc)})]
-      (loop [child first-child
-             context context]
-        (let [effective-context (assoc context
-                                       :index (util/effective-index child)
-                                       :zloc child)
-              [spaces new-context] (if (= child first-child)
-                                     [[0 0] context]
-                                     (processor effective-context))
-              adjusted-child (add-spaces child base-indentation spaces)
-              adjusted-child (transform adjusted-child)
-              next-child (z/right adjusted-child)]
-          (if (z/end? next-child)
-            (z/up* adjusted-child)
-            (recur next-child new-context)))))
-    zloc))
+  [first-child context base-indentation processor]
+  (loop [child first-child
+         context context
+         processed-children []]
+    (let [effective-context (assoc context
+                                   :index (util/effective-index child)
+                                   :zloc child)
+          [spaces new-context] (if (= child first-child)
+                                 [[0 0] context]
+                                 (processor effective-context))
+          adjusted-child (add-spaces child base-indentation spaces)
+          adjusted-child (transform adjusted-child)
+          next-child (z/right adjusted-child)]
+      (if (z/end? next-child)
+        [(z/up* adjusted-child) processed-children]
+        (recur next-child new-context (conj processed-children [effective-context adjusted-child]))))))
 
 (defn- process-children
   [zloc]
-  (let [base-indentation (get-base-indentation zloc)]
-    (process-children* zloc {} base-indentation)))
+  (if (z/down zloc)
+    (let [base-indentation (get-base-indentation zloc)
+          effective-index (util/effective-index zloc)
+          {:keys [processor backtracker]} (pick-processor {:zloc zloc
+                                                           :index effective-index})]
+      (loop [pass 0
+             context {}]
+        (let [[adjusted-zloc processed-children] (process-children* (z/down zloc) (assoc context :pass pass) base-indentation processor)]
+          (if-let [new-context (backtracker {:zloc zloc
+                                             :index effective-index
+                                             :pass pass
+                                             :processed-children processed-children})]
+            (recur (inc pass) new-context)
+            adjusted-zloc))))
+    zloc))
 
 (defn- process-top-level
   [zloc]

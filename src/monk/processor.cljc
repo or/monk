@@ -28,7 +28,10 @@
    true)
 
   ([context]
-   [[0 1] context]))
+   [[0 1] context])
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defn- paired-element*
   [num-args
@@ -46,14 +49,20 @@
    (-> zloc z/tag (= :map)))
 
   ([context]
-   (paired-element* 0 1 context)))
+   (paired-element* 0 1 context))
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defprocessor vector-form
   ([{:keys [zloc]}]
    (-> zloc z/tag (= :vector)))
 
   ([context]
-   [[0 1] context]))
+   [[0 1] context])
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defprocessor ns-block-form
   ([{:keys [zloc]}]
@@ -62,7 +71,10 @@
         (some-> zloc z/leftmost (util/is-token? 'ns))))
 
   ([context]
-   [[1 1] context]))
+   [[1 1] context])
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defprocessor defn-form
   ([{:keys [zloc]}]
@@ -80,7 +92,10 @@
         :else [0 1])
       (cond-> context
         (and (not seen-name?)
-             likely-function-name?) (assoc :seen-name? true))])))
+             likely-function-name?) (assoc :seen-name? true))]))
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defprocessor def-form
   ([{:keys [zloc]}]
@@ -97,7 +112,10 @@
         :else [0 1])
       (cond-> context
         (and (not seen-name?)
-             likely-function-name?) (assoc :seen-name? true))])))
+             likely-function-name?) (assoc :seen-name? true))]))
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defprocessor fn-form
   ([{:keys [zloc]}]
@@ -114,7 +132,10 @@
         :else [0 1])
       (cond-> context
         (and (not seen-args?)
-             likely-args?) (assoc :seen-args? true))])))
+             likely-args?) (assoc :seen-args? true))]))
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defprocessor let-like-bindings
   ([{:keys [zloc index]}]
@@ -129,7 +150,10 @@
             (some-> zloc z/up z/left (util/is-token? 'for)))))
 
   ([context]
-   (paired-element* 0 1 context)))
+   (paired-element* 0 1 context))
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defn- letfn-binding?
   [{:keys [zloc index]}]
@@ -143,7 +167,10 @@
    (letfn-binding? context))
 
   ([context]
-   [[1 1] context]))
+   [[1 1] context])
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defn- block-form*
   [num-args {:keys [index]
@@ -159,7 +186,10 @@
         (letfn-binding? {:zloc (z/up zloc)})))
 
   ([context]
-   (block-form* 1 context)))
+   (block-form* 1 context))
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defprocessor block-form
   ([{:keys [zloc]}]
@@ -169,7 +199,10 @@
   ([{:keys [zloc]
      :as context}]
    (let [num-args (-> zloc z/leftmost z/sexpr block-tokens)]
-     (block-form* num-args context))))
+     (block-form* num-args context)))
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defprocessor cond->-form
   ([{:keys [zloc]}]
@@ -177,7 +210,10 @@
         (util/is-token? (z/down zloc) #{'cond-> 'cond->>})))
 
   ([context]
-   (paired-element* 2 2 context)))
+   (paired-element* 2 2 context))
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defprocessor cond-form
   ([{:keys [zloc]}]
@@ -185,7 +221,10 @@
         (util/is-token? (z/down zloc) 'cond)))
 
   ([context]
-   (paired-element* 1 2 context)))
+   (paired-element* 1 2 context))
+
+  ([{:keys [pass processed-children]}]
+   nil))
 
 (defprocessor case-form
   ([{:keys [zloc]}]
@@ -193,4 +232,30 @@
         (util/is-token? (z/down zloc) 'case)))
 
   ([context]
-   (paired-element* 2 2 context)))
+   (paired-element* 2 2 context))
+
+  ([{:keys [pass processed-children]}]
+   nil))
+
+(defn- backtrack-if-multiline
+  [{:keys [pass processed-children]}]
+  (when (zero? pass)
+    (loop [[[_ child-zloc] & rest] processed-children]
+      (if (and child-zloc
+               (util/multiline? child-zloc))
+        {}
+        (when (seq rest)
+          (recur rest))))))
+
+(defprocessor function-form
+  ([{:keys [zloc]}]
+   (util/is-list? zloc))
+
+  ([{:keys [pass]
+     :as context}]
+   (if (zero? pass)
+     [[0 1] context]
+     [[1 1] context]))
+
+  ([context]
+   (backtrack-if-multiline context)))
