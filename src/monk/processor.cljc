@@ -238,14 +238,34 @@
    nil))
 
 (defn- backtrack-if-multiline
-  [{:keys [pass processed-children]}]
+  [{:keys [processed-children]}]
+  (loop [[[_ child-zloc] & rest] processed-children]
+    (if (and child-zloc
+             (util/multiline? child-zloc))
+      {}
+      (when (seq rest)
+        (recur rest)))))
+
+(defn- backtrack-if-many-chunks
+  [{:keys [processed-children]}]
+  (loop [[[_ child-zloc] & rest] processed-children
+         num-children 0
+         num-chunks 0]
+    (when child-zloc
+      (let [num-children (inc num-children)
+            num-chunks (+ num-chunks (util/num-chunks child-zloc))]
+        (if (< (+ num-children 1)
+               num-chunks)
+          {}
+          (when (seq rest)
+            (recur rest num-children num-chunks)))))))
+
+(defn- backtrack-if-complex
+  [{:keys [pass]
+    :as context}]
   (when (zero? pass)
-    (loop [[[_ child-zloc] & rest] processed-children]
-      (if (and child-zloc
-               (util/multiline? child-zloc))
-        {}
-        (when (seq rest)
-          (recur rest))))))
+    (or (backtrack-if-multiline context)
+        (backtrack-if-many-chunks context))))
 
 (defprocessor function-form
   ([{:keys [zloc]}]
@@ -258,4 +278,4 @@
      [[1 1] context]))
 
   ([context]
-   (backtrack-if-multiline context)))
+   (backtrack-if-complex context)))

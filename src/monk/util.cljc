@@ -50,3 +50,7 @@
 (defn multiline?
   [zloc]
   (str/includes? (z/string zloc) "\n"))
+
+(defn num-chunks
+  [zloc]
+  (count (str/split (z/string zloc) #"[ \n]+")))

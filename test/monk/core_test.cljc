@@ -288,5 +288,18 @@
     |   (something-else))
     | arg3)"
 
+    "(some-function arg1 (arg2) (arg3))"
+
+    "(some-function arg1 (arg2 1) (arg3 2))"
+
+    "(some-function
+    | arg1
+    | (arg2 1 :foo)
+    | (arg3 2))"
+
+    "(some-function
+    | (arg1 :foo)
+    | (arg2 1)
+    | (arg3 2))"
     ;
     ))
