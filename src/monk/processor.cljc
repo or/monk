@@ -267,15 +267,26 @@
     (or (backtrack-if-multiline context)
         (backtrack-if-many-chunks context))))
 
+(defn- indentation-of-first-argument
+  [zloc base-indentation]
+  (-> zloc
+      z/leftmost
+      z/right
+      util/get-base-indentation
+      (- base-indentation)))
+
 (defprocessor function-form
   ([{:keys [zloc]}]
    (util/is-list? zloc))
 
-  ([{:keys [pass]
+  ([{:keys [zloc pass index base-indentation]
      :as context}]
-   (if (zero? pass)
-     [[0 1] context]
-     [[1 1] context]))
+   (cond
+     (zero? pass) [[0 1] context]
+     (pos? pass) (if (= 1 index)
+                   [[0 1] context]
+                   [[1 (indentation-of-first-argument zloc base-indentation)] context])
+     :else [[1 1] context]))
 
   ([context]
    (backtrack-if-complex context)))
