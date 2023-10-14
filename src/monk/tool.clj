@@ -35,15 +35,11 @@
   (monk/reformat-string s options))
 
 (defn- format-diff
-  ([options file]
-   (let [original (io/read-file file)]
-     (format-diff options file original (reformat-string options original))))
-
-  ([options file original revised]
-   (let [diff (diff/unified-diff file original revised)]
-     (if (:color? options)
-       (diff/colorize-diff diff)
-       diff))))
+  [options file original revised]
+  (let [diff (diff/unified-diff file original revised)]
+    (if (:color? options)
+      (diff/colorize-diff diff)
+      diff)))
 
 (def ^:private zero-counts
   {:okay 0
