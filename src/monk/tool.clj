@@ -31,9 +31,6 @@
         (grep #"\.clj[csx]?$" f)
         (list f)))))
 
-(defn- reformat-string [options s]
-  (monk/reformat-string s options))
-
 (defn- format-diff
   [options file original revised]
   (let [diff (diff/unified-diff file original revised)]
@@ -52,7 +49,7 @@
                 :file file}]
     (try
       (let [original (io/read-file file)
-            revised (reformat-string options original)]
+            revised (monk/reformat-string original options)]
         (if (= original revised)
           (assoc-in status [:counts :okay] 1)
           (-> status
@@ -126,7 +123,7 @@
   (trace "Processing file:" file)
   (try
     (let [original (io/read-file file)
-          revised (reformat-string options original)
+          revised (monk/reformat-string original options)
           changed? (not= original revised)]
       (io/update-file file revised changed?)
       (cond-> {:file file}
