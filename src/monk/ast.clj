@@ -11,12 +11,20 @@
 
 (defn up
   ^ASTPointer [^ASTPointer {:keys [path ast]}]
-  (ASTPointer. (pop path) ast))
+  (if (empty? path)
+    nil
+    (ASTPointer. (pop path) ast)))
 
 (defn left
   ^ASTPointer [^ASTPointer {:keys [path ast]}]
   (let [index (last path)]
     (ASTPointer. (conj (pop path) (dec index)) ast)))
+
+(defn leftmost
+  ^ASTPointer [^ASTPointer {:keys [path ast]}]
+  (if (empty? path)
+    nil
+    (ASTPointer. (conj (pop path) 1) ast)))
 
 (defn right
   ^ASTPointer [^ASTPointer {:keys [path ast]}]

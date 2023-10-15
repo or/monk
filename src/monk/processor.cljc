@@ -1,5 +1,6 @@
 (ns monk.processor
   (:require
+   [monk.ast :as ast]
    [monk.macro :refer [defprocessor]]
    [monk.util :as util]
    [rewrite-clj.zip :as z]))
@@ -29,6 +30,16 @@
 
   ([context]
    [[0 1] context])
+
+  ([{:keys [pass processed-children]}]
+   nil))
+
+(defprocessor top-level-form
+  ([{:keys [pointer]}]
+   (empty? (:path pointer)))
+
+  ([context]
+   [[2 0] context])
 
   ([{:keys [pass processed-children]}]
    nil))
@@ -65,13 +76,13 @@
    nil))
 
 (defprocessor ns-block-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) #{:require :import :use})
-        (some-> zloc z/leftmost (util/is-token? 'ns))))
+  ([{:keys [pointer]}]
+   (and (util/is-list? pointer)
+        (util/is-keyword? (ast/down pointer) #{:require :import :use})
+        (util/is-symbol? (ast/leftmost pointer) #{'ns})))
 
   ([context]
-   [[1 1] context])
+   [[1 2] context])
 
   ([{:keys [pass processed-children]}]
    nil))
@@ -192,13 +203,13 @@
    nil))
 
 (defprocessor block-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) block-tokens)))
+  ([{:keys [pointer]}]
+   (and (util/is-list? pointer)
+        (util/is-symbol? (ast/down pointer) block-tokens)))
 
-  ([{:keys [zloc]
+  ([{:keys [pointer]
      :as context}]
-   (let [num-args (-> zloc z/leftmost z/sexpr block-tokens)]
+   (let [num-args (-> pointer ast/leftmost ast/value second symbol block-tokens)]
      (block-form* num-args context)))
 
   ([{:keys [pass processed-children]}]
