@@ -2,49 +2,58 @@
   (:require
    [clojure.string :as str]
    [monk.ast :as ast]
-   [parcera.core :as parcera]
-   [rewrite-clj.zip :as z]))
+   [parcera.core :as parcera]))
 
-(defn is-token?
-  [zloc token]
-  (if (or (set? token)
-          (map? token))
-    (and (-> zloc z/tag (= :token))
-         (-> zloc z/sexpr token))
-    (and (-> zloc z/tag (= :token))
-         (-> zloc z/sexpr (= token)))))
-
-(defn is-keyword?
+(defn is-particular-keyword?
   [pointer keywords]
   (let [value (ast/value pointer)]
     (and value
          (-> value first (= :keyword))
          (-> value second (subs 1) keyword keywords))))
 
-(defn is-symbol?
+(defn is-particular-symbol?
   [pointer symbols]
   (let [value (ast/value pointer)]
     (and value
          (-> value first (= :symbol))
          (-> value second symbol symbols))))
 
+(defn is-symbol?
+  [pointer]
+  (let [value (ast/value pointer)]
+    (and value
+         (-> value first (= :symbol)))))
+
 (defn is-list?
   [pointer]
   (some-> pointer ast/value first (= :list)))
 
+(defn is-map?
+  [pointer]
+  (some-> pointer ast/value first (= :map)))
+
 (defn is-vector?
-  [zloc]
-  (some-> zloc z/tag (= :vector)))
+  [pointer]
+  (some-> pointer ast/value first (= :vector)))
 
 (defn is-meta?
-  [zloc]
-  (some-> zloc z/tag (= :meta)))
+  [pointer]
+  (some-> pointer ast/value first (= :metadata)))
+
+(defn is-whitespace?
+  [pointer]
+  (some-> pointer ast/value first (= :whitespace)))
 
 (defn- num-siblings-left-of
-  [{:keys [path]}]
-  (if (empty? path)
-    0
-    (some-> path last dec)))
+  [pointer]
+  ;; TODO: needs work
+  (loop [num-siblings 0
+         pointer (ast/left pointer)]
+    (let [value (ast/value pointer)]
+      (cond
+        (nil? value) num-siblings
+        (-> value first (= :whitespace)) (recur num-siblings (ast/left pointer))
+        :else (recur (inc num-siblings) (ast/left pointer))))))
 
 (def ^:private thread-first-tokens
   #{'-> 'cond->})
@@ -53,7 +62,7 @@
   [pointer]
   (let [naive-index (num-siblings-left-of pointer)]
     (if-let [parent (ast/up pointer)]
-      (if (and (some-> parent ast/leftmost (is-symbol? thread-first-tokens))
+      (if (and (some-> parent ast/leftmost (is-particular-symbol? thread-first-tokens))
                (< 1 (effective-index parent))
                (pos? naive-index))
         (inc naive-index)
@@ -61,12 +70,12 @@
       naive-index)))
 
 (defn multiline?
-  [zloc]
-  (str/includes? (z/string zloc) "\n"))
+  [pointer]
+  (str/includes? (-> pointer ast/value parcera/code) "\n"))
 
 (defn num-chunks
-  [zloc]
-  (count (str/split (z/string zloc) #"[ \n]+")))
+  [pointer]
+  (count (str/split (-> pointer ast/value parcera/code) #"[ \n]+")))
 
 (def includes?
   #?(:clj (fn [^String a ^String b]

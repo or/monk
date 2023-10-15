@@ -162,9 +162,9 @@
     nil
 
     #(-> % sut/down sut/down sut/right)
-    [:whitespace " "]
+    [:symbol "arg1"]
 
-    #(-> % sut/down sut/down sut/right sut/right sut/right sut/right sut/right sut/right sut/down)
+    #(-> % sut/down sut/down sut/right sut/right sut/right sut/down)
     [:keyword ":foo"]
 
     #(-> % sut/down sut/down sut/left sut/left sut/down sut/up sut/up)

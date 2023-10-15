@@ -28,19 +28,19 @@
 
 (def processors
   [processor/ns-block-form
-   #_processor/defn-form
-   #_processor/def-form
-   #_processor/fn-form
-   #_processor/let-like-bindings
-   #_processor/letfn-bindings
-   #_processor/letfn-binding-function
-   #_processor/map-form
-   #_processor/vector-form
-   #_processor/case-form
-   #_processor/cond-form
-   #_processor/cond->-form
+   processor/defn-form
+   processor/def-form
+   processor/fn-form
+   processor/let-like-bindings
+   processor/letfn-bindings
+   processor/letfn-binding-function
+   processor/map-form
+   processor/vector-form
+   processor/case-form
+   processor/cond-form
+   processor/cond->-form
    processor/block-form
-   #_processor/function-form
+   processor/function-form
    processor/top-level-form
    processor/default])
 
@@ -74,7 +74,9 @@
   [pointer]
   (if (ast/value (ast/down pointer))
     (let [;; TODO: currently incremented because this is the parent list offset
-          base-indentation (inc (util/get-base-indentation pointer))
+          base-indentation (if (< (count (:path pointer)) 2)
+                             0
+                             (inc (util/get-base-indentation pointer)))
           effective-index (util/effective-index pointer)
           {:keys [processor backtracker]} (pick-processor {:pointer pointer
                                                            :index effective-index})]

@@ -5,32 +5,6 @@
 
 (defrecord ASTPointer [path ast])
 
-(defn down
-  ^ASTPointer [^ASTPointer {:keys [path ast]}]
-  (ASTPointer. (conj path 1) ast))
-
-(defn up
-  ^ASTPointer [^ASTPointer {:keys [path ast]}]
-  (if (empty? path)
-    nil
-    (ASTPointer. (pop path) ast)))
-
-(defn left
-  ^ASTPointer [^ASTPointer {:keys [path ast]}]
-  (let [index (last path)]
-    (ASTPointer. (conj (pop path) (dec index)) ast)))
-
-(defn leftmost
-  ^ASTPointer [^ASTPointer {:keys [path ast]}]
-  (if (empty? path)
-    nil
-    (ASTPointer. (conj (pop path) 1) ast)))
-
-(defn right
-  ^ASTPointer [^ASTPointer {:keys [path ast]}]
-  (let [index (last path)]
-    (ASTPointer. (conj (pop path) (inc index)) ast)))
-
 (defn value
   [^ASTPointer {:keys [path ast]}]
   (if (empty? path)
@@ -44,6 +18,46 @@
           (not (vector? new-value)) nil
           (empty? rest) new-value
           :else (recur rest new-value))))))
+
+(defn down
+  ^ASTPointer [^ASTPointer {:keys [path ast]}]
+  (ASTPointer. (conj path 1) ast))
+
+(defn up
+  ^ASTPointer [^ASTPointer {:keys [path ast]}]
+  (if (empty? path)
+    nil
+    (ASTPointer. (pop path) ast)))
+
+(defn left
+  ^ASTPointer [^ASTPointer {:keys [path ast]}]
+  (if (empty? path)
+    nil
+    (let [parent-path (pop path)
+          parent (value (ASTPointer. parent-path ast))]
+      (loop [index (dec (last path))]
+        (if (and (<= 1 index)
+                 (some-> (get parent index) first (= :whitespace)))
+          (recur (dec index))
+          (ASTPointer. (conj parent-path index) ast))))))
+
+(defn leftmost
+  ^ASTPointer [^ASTPointer {:keys [path ast]}]
+  (if (empty? path)
+    nil
+    (ASTPointer. (conj (pop path) 1) ast)))
+
+(defn right
+  ^ASTPointer [^ASTPointer {:keys [path ast]}]
+  (if (empty? path)
+    nil
+    (let [parent-path (pop path)
+          parent (value (ASTPointer. parent-path ast))]
+      (loop [index (inc (last path))]
+        (if (and (< index (count parent))
+                 (some-> (get parent index) first (= :whitespace)))
+          (recur (inc index))
+          (ASTPointer. (conj parent-path index) ast))))))
 
 (defn parse
   ^ASTPointer [^String data]
@@ -68,7 +82,10 @@
 (defn insert-left
   [^ASTPointer {:keys [path ast]} node]
   (let [index (last path)
-        new-ast (update-in ast (pop path) insert-element index node)]
+        parent-path (pop path)
+        new-ast (if (empty? parent-path)
+                  (insert-element ast index node)
+                  (update-in ast parent-path insert-element index node))]
     (right (ASTPointer. path new-ast))))
 
 (defn whitespace-node

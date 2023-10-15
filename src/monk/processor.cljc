@@ -2,8 +2,7 @@
   (:require
    [monk.ast :as ast]
    [monk.macro :refer [defprocessor]]
-   [monk.util :as util]
-   [rewrite-clj.zip :as z]))
+   [monk.util :as util]))
 
 (def ^:private block-tokens
   {'ns 1
@@ -56,8 +55,8 @@
    context])
 
 (defprocessor map-form
-  ([{:keys [zloc]}]
-   (-> zloc z/tag (= :map)))
+  ([{:keys [pointer]}]
+   (util/is-map? pointer))
 
   ([context]
    (paired-element* 0 1 context))
@@ -66,8 +65,8 @@
    nil))
 
 (defprocessor vector-form
-  ([{:keys [zloc]}]
-   (-> zloc z/tag (= :vector)))
+  ([{:keys [pointer]}]
+   (util/is-vector? pointer))
 
   ([context]
    [[0 1] context])
@@ -78,8 +77,8 @@
 (defprocessor ns-block-form
   ([{:keys [pointer]}]
    (and (util/is-list? pointer)
-        (util/is-keyword? (ast/down pointer) #{:require :import :use})
-        (util/is-symbol? (ast/leftmost pointer) #{'ns})))
+        (util/is-particular-keyword? (ast/down pointer) #{:require :import :use})
+        (util/is-particular-symbol? (ast/leftmost pointer) #{'ns})))
 
   ([context]
    [[1 2] context])
@@ -88,16 +87,16 @@
    nil))
 
 (defprocessor defn-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) #{'defn 'defn-})))
+  ([{:keys [pointer]}]
+   (and (util/is-list? pointer)
+        (util/is-particular-symbol? (ast/down pointer) #{'defn 'defn-})))
 
-  ([{:keys [zloc seen-name?]
+  ([{:keys [pointer seen-name?]
      :as context}]
    ;; TODO: this needs more logic for the metadata
    ;; TODO: multi arity
-   (let [likely-function-name? (or (util/is-symbol? zloc)
-                                   (util/is-meta? zloc))]
+   (let [likely-function-name? (or (util/is-symbol? pointer)
+                                   (util/is-meta? pointer))]
      [(cond
         seen-name? [1 2]
         :else [0 1])
@@ -109,15 +108,15 @@
    nil))
 
 (defprocessor def-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) 'def)))
+  ([{:keys [pointer]}]
+   (and (util/is-list? pointer)
+        (util/is-particular-symbol? (ast/down pointer) #{'def})))
 
-  ([{:keys [zloc seen-name?]
+  ([{:keys [pointer seen-name?]
      :as context}]
    ;; TODO: this needs more logic for the metadata
-   (let [likely-function-name? (or (util/is-symbol? zloc)
-                                   (util/is-meta? zloc))]
+   (let [likely-function-name? (or (util/is-symbol? pointer)
+                                   (util/is-meta? pointer))]
      [(cond
         seen-name? [1 2]
         :else [0 1])
@@ -129,15 +128,15 @@
    nil))
 
 (defprocessor fn-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) 'fn)))
+  ([{:keys [pointer]}]
+   (and (util/is-list? pointer)
+        (util/is-particular-symbol? (ast/down pointer) #{'fn})))
 
-  ([{:keys [zloc seen-args?]
+  ([{:keys [pointer seen-args?]
      :as context}]
    ;; TODO: this needs more logic for the metadata
    ;; TODO: multi arity
-   (let [likely-args? (util/is-vector? zloc)]
+   (let [likely-args? (util/is-vector? pointer)]
      [(cond
         seen-args? [1 2]
         :else [0 1])
@@ -149,16 +148,16 @@
    nil))
 
 (defprocessor let-like-bindings
-  ([{:keys [zloc index]}]
-   (or (and (util/is-vector? zloc)
-            (some-> zloc z/leftmost (util/is-token? #{'let 'doseq 'loop 'for}))
+  ([{:keys [pointer index]}]
+   (or (and (util/is-vector? pointer)
+            (some-> pointer ast/leftmost (util/is-particular-symbol? #{'let 'doseq 'loop 'for}))
             (= index 1))
-       (and (util/is-vector? zloc)
-            (some-> zloc z/left (util/is-token? :let))
-            (some-> zloc z/up util/is-vector?)
-            (= (some-> zloc z/up z/left)
-               (some-> zloc z/up z/leftmost))
-            (some-> zloc z/up z/left (util/is-token? 'for)))))
+       (and (util/is-vector? pointer)
+            (some-> pointer ast/left (util/is-particular-keyword? #{:let}))
+            (some-> pointer ast/up util/is-vector?)
+            (= (some-> pointer ast/up ast/left)
+               (some-> pointer ast/up ast/leftmost))
+            (some-> pointer ast/up ast/left (util/is-particular-symbol? #{'for})))))
 
   ([context]
    (paired-element* 0 1 context))
@@ -167,11 +166,11 @@
    nil))
 
 (defn- letfn-binding?
-  [{:keys [zloc index]}]
-  (and (util/is-vector? zloc)
-       (some-> zloc z/leftmost (util/is-token? 'letfn))
+  [{:keys [pointer index]}]
+  (and (util/is-vector? pointer)
+       (some-> pointer ast/leftmost (util/is-particular-symbol? #{'letfn}))
        (= (or index
-              (util/effective-index zloc)) 1)))
+              (util/effective-index pointer)) 1)))
 
 (defprocessor letfn-bindings
   ([context]
@@ -192,9 +191,9 @@
    context])
 
 (defprocessor letfn-binding-function
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (letfn-binding? {:zloc (z/up zloc)})))
+  ([{:keys [pointer]}]
+   (and (util/is-list? pointer)
+        (letfn-binding? {:pointer (ast/up pointer)})))
 
   ([context]
    (block-form* 1 context))
@@ -205,9 +204,10 @@
 (defprocessor block-form
   ([{:keys [pointer]}]
    (and (util/is-list? pointer)
-        (util/is-symbol? (ast/down pointer) block-tokens)))
+        (util/is-particular-symbol? (ast/down pointer) block-tokens)))
 
-  ([{:keys [pointer]
+  ([{:keys [pointer
+            index]
      :as context}]
    (let [num-args (-> pointer ast/leftmost ast/value second symbol block-tokens)]
      (block-form* num-args context)))
@@ -216,9 +216,9 @@
    nil))
 
 (defprocessor cond->-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) #{'cond-> 'cond->>})))
+  ([{:keys [pointer]}]
+   (and (util/is-list? pointer)
+        (util/is-particular-symbol? (ast/down pointer) #{'cond-> 'cond->>})))
 
   ([context]
    (paired-element* 2 2 context))
@@ -227,9 +227,9 @@
    nil))
 
 (defprocessor cond-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) 'cond)))
+  ([{:keys [pointer]}]
+   (and (util/is-list? pointer)
+        (util/is-particular-symbol? (ast/down pointer) #{'cond})))
 
   ([context]
    (paired-element* 1 2 context))
@@ -238,9 +238,9 @@
    nil))
 
 (defprocessor case-form
-  ([{:keys [zloc]}]
-   (and (util/is-list? zloc)
-        (util/is-token? (z/down zloc) 'case)))
+  ([{:keys [pointer]}]
+   (and (util/is-list? pointer)
+        (util/is-particular-symbol? (ast/down pointer) #{'case})))
 
   ([context]
    (paired-element* 2 2 context))
@@ -250,21 +250,21 @@
 
 (defn- backtrack-if-multiline
   [{:keys [processed-children]}]
-  (loop [[[_ child-zloc] & rest] processed-children]
-    (if (and child-zloc
-             (util/multiline? child-zloc))
+  (loop [[[_ child-pointer] & rest] processed-children]
+    (if (and child-pointer
+             (util/multiline? child-pointer))
       {}
       (when (seq rest)
         (recur rest)))))
 
 (defn- backtrack-if-many-chunks
   [{:keys [processed-children]}]
-  (loop [[[_ child-zloc] & rest] processed-children
+  (loop [[[_ child-pointer] & rest] processed-children
          num-children 0
          num-chunks 0]
-    (when child-zloc
+    (when child-pointer
       (let [num-children (inc num-children)
-            num-chunks (+ num-chunks (util/num-chunks child-zloc))]
+            num-chunks (+ num-chunks (util/num-chunks child-pointer))]
         (if (< (+ num-children 1)
                num-chunks)
           {}
@@ -279,24 +279,24 @@
         (backtrack-if-many-chunks context))))
 
 (defn- indentation-of-first-argument
-  [zloc base-indentation]
-  (-> zloc
-      z/leftmost
-      z/right
+  [pointer base-indentation]
+  (-> pointer
+      ast/leftmost
+      ast/right
       util/get-base-indentation
-      (- base-indentation)))
+      (- base-indentation -1)))
 
 (defprocessor function-form
-  ([{:keys [zloc]}]
-   (util/is-list? zloc))
+  ([{:keys [pointer]}]
+   (util/is-list? pointer))
 
-  ([{:keys [zloc pass index base-indentation]
+  ([{:keys [pointer pass index base-indentation]
      :as context}]
    (cond
      (zero? pass) [[0 1] context]
      (pos? pass) (if (= 1 index)
                    [[0 1] context]
-                   [[1 (indentation-of-first-argument zloc base-indentation)] context])
+                   [[1 (indentation-of-first-argument pointer base-indentation)] context])
      :else [[1 1] context]))
 
   ([context]
