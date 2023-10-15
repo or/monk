@@ -41,6 +41,14 @@
           (recur (dec index))
           (ASTPointer. (conj parent-path index) ast))))))
 
+(defn left*
+  ^ASTPointer [^ASTPointer {:keys [path ast]}]
+  (if (empty? path)
+    nil
+    (let [index (last path)
+          parent-path (pop path)]
+      (ASTPointer. (conj parent-path (dec index)) ast))))
+
 (defn leftmost
   ^ASTPointer [^ASTPointer {:keys [path ast]}]
   (if (empty? path)

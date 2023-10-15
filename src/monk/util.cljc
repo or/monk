@@ -69,24 +69,35 @@
         naive-index)
       naive-index)))
 
-(defn multiline?
-  [pointer]
-  (str/includes? (-> pointer ast/value parcera/code) "\n"))
-
-(defn num-chunks
-  [pointer]
-  (count (str/split (-> pointer ast/value parcera/code) #"[ \n]+")))
-
 (def includes?
   #?(:clj (fn [^String a ^String b]
             (.contains a b))
      :cljs str/includes?))
 
+(defn multiline?
+  [pointer]
+  (->> (tree-seq sequential? seq (ast/value pointer))
+       (filter (fn [node]
+                 (and (vector? node)
+                      (-> node first (= :whitespace))
+                      (-> node second (includes? "\n")))))
+       seq))
+
+(defn num-chunks
+  [pointer]
+  (->> (tree-seq sequential? seq (ast/value pointer))
+       (filter (fn [node]
+                 (and (vector? node)
+                      (-> node first (= :whitespace)))))
+       (take 3)
+       count
+       inc))
+
 (defn get-base-indentation
   [{:keys [path ast]}]
   (if (empty? path)
     0
-    ; TODO: this is a terrible hack, but will do for now
+    ; TODO: this is a terrible hack and very slow, but will do for now
     (let [s (-> ast
                 (assoc-in path [:symbol ":MONK-BASE-INDENTATION"])
                 parcera/code)
