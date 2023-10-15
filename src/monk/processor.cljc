@@ -59,7 +59,7 @@
    (util/is-map? pointer))
 
   ([context]
-   (paired-element* 0 1 context))
+   (paired-element* 0 0 context))
 
   ([{:keys [pass processed-children]}]
    nil))
@@ -81,7 +81,7 @@
         (util/is-particular-symbol? (ast/leftmost pointer) #{'ns})))
 
   ([context]
-   [[1 2] context])
+   [[1 1] context])
 
   ([{:keys [pass processed-children]}]
    nil))
@@ -98,7 +98,7 @@
    (let [likely-function-name? (or (util/is-symbol? pointer)
                                    (util/is-meta? pointer))]
      [(cond
-        seen-name? [1 2]
+        seen-name? [1 1]
         :else [0 1])
       (cond-> context
         (and (not seen-name?)
@@ -118,7 +118,7 @@
    (let [likely-function-name? (or (util/is-symbol? pointer)
                                    (util/is-meta? pointer))]
      [(cond
-        seen-name? [1 2]
+        seen-name? [1 1]
         :else [0 1])
       (cond-> context
         (and (not seen-name?)
@@ -138,7 +138,7 @@
    ;; TODO: multi arity
    (let [likely-args? (util/is-vector? pointer)]
      [(cond
-        seen-args? [1 2]
+        seen-args? [1 1]
         :else [0 1])
       (cond-> context
         (and (not seen-args?)
@@ -160,7 +160,7 @@
             (some-> pointer ast/up ast/left (util/is-particular-symbol? #{'for})))))
 
   ([context]
-   (paired-element* 0 1 context))
+   (paired-element* 0 0 context))
 
   ([{:keys [pass processed-children]}]
    nil))
@@ -177,7 +177,7 @@
    (letfn-binding? context))
 
   ([context]
-   [[1 1] context])
+   [[1 0] context])
 
   ([{:keys [pass processed-children]}]
    nil))
@@ -187,7 +187,7 @@
              :as context}]
   [(if (<= index num-args)
      [0 1]
-     [1 2])
+     [1 1])
    context])
 
 (defprocessor letfn-binding-function
@@ -221,7 +221,7 @@
         (util/is-particular-symbol? (ast/down pointer) #{'cond-> 'cond->>})))
 
   ([context]
-   (paired-element* 2 2 context))
+   (paired-element* 2 1 context))
 
   ([{:keys [pass processed-children]}]
    nil))
@@ -232,7 +232,7 @@
         (util/is-particular-symbol? (ast/down pointer) #{'cond})))
 
   ([context]
-   (paired-element* 1 2 context))
+   (paired-element* 1 1 context))
 
   ([{:keys [pass processed-children]}]
    nil))
@@ -243,7 +243,7 @@
         (util/is-particular-symbol? (ast/down pointer) #{'case})))
 
   ([context]
-   (paired-element* 2 2 context))
+   (paired-element* 2 1 context))
 
   ([{:keys [pass processed-children]}]
    nil))
@@ -278,25 +278,17 @@
     (or (backtrack-if-multiline context)
         (backtrack-if-many-chunks context))))
 
-(defn- indentation-of-first-argument
-  [pointer base-indentation]
-  (-> pointer
-      ast/leftmost
-      ast/right
-      util/get-base-indentation
-      (- base-indentation -1)))
-
 (defprocessor function-form
   ([{:keys [pointer]}]
    (util/is-list? pointer))
 
-  ([{:keys [pointer pass index base-indentation]
+  ([{:keys [pass index]
      :as context}]
    (cond
      (zero? pass) [[0 1] context]
      (pos? pass) (if (= 1 index)
                    [[0 1] context]
-                   [[1 (indentation-of-first-argument pointer base-indentation)] context])
+                   [[1 :first-arg] context])
      :else [[1 1] context]))
 
   ([context]

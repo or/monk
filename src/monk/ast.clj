@@ -98,8 +98,8 @@
 
 (defn whitespace-node
   [number-of-newlines number-of-spaces]
-  [:whitespace (apply str (concat (repeat number-of-newlines "\n")
-                                  (repeat number-of-spaces " ")))])
+  [:whitespace {:newlines number-of-newlines
+                :spaces number-of-spaces}])
 
 (defn insert-newlines-and-spaces
   [^ASTPointer pointer

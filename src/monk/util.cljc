@@ -80,7 +80,7 @@
        (filter (fn [node]
                  (and (vector? node)
                       (-> node first (= :whitespace))
-                      (-> node second (includes? "\n")))))
+                      (-> node second :newlines pos?))))
        seq))
 
 (defn num-chunks
@@ -92,15 +92,3 @@
        (take 3)
        count
        inc))
-
-(defn get-base-indentation
-  [{:keys [path ast]}]
-  (if (empty? path)
-    0
-    ; TODO: this is a terrible hack and very slow, but will do for now
-    (let [s (-> ast
-                (assoc-in path [:symbol ":MONK-BASE-INDENTATION"])
-                parcera/code)
-          prior-code (subs s 0 (str/index-of s ":MONK-BASE-INDENTATION"))
-          lines (str/split prior-code #"\n")]
-      (dec (count (last lines))))))

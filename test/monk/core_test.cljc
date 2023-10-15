@@ -278,7 +278,7 @@
     |  another-value (assoc :key :whatever)
     |  default-value)"
 
-    ;; ; function call
+    ; function call
     "(some-function arg1 arg2 arg3)"
 
     "(some-function arg1

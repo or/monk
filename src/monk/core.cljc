@@ -10,4 +10,5 @@
       transform/remove-whitespace
       transform/transform
       :ast
+      transform/concretize-whitespace
       parcera/code))
