@@ -27,191 +27,221 @@
   ([_context]
    true)
 
-  ([{:keys [child-index-effective]}]
-   (if (zero? child-index-effective)
-     [0 0]
-     [0 1])))
+  ([{:keys [child-index-effective]} state]
+   [(if (zero? child-index-effective)
+      [0 0]
+      [0 1])
+    state]))
 
-;; (defprocessor top-level-form
-;;   ([{:keys [pointer]}]
-;;    (empty? (:path pointer)))
+(defprocessor top-level-form
+  ([{:keys [value]}]
+   (-> value
+       first
+       (= :code)))
 
-;;   ([context]
-;;    [[2 0] context]))
+  ([{:keys [child-index-effective]} state]
+   [(if (zero? child-index-effective)
+      [0 0]
+      [2 0])
+    state]))
 
-;; (defn- paired-element*
-;;   [num-args
-;;    first-element-indentation
-;;    {:keys [index]
-;;     :as context}]
-;;   [(cond
-;;      (< index num-args) [0 1]
-;;      (even? (- index num-args)) [1 first-element-indentation]
-;;      :else [0 1])
-;;    context])
+(defn- paired-element*
+  [num-args
+   first-element-indentation
+   {:keys [child-index-effective]}]
+  (cond
+    (zero? child-index-effective) [0 0]
+    (< child-index-effective num-args) [0 1]
+    (even? (- child-index-effective num-args)) [1 first-element-indentation]
+    :else [0 1]))
 
-;; (defprocessor map-form
-;;   ([{:keys [pointer]}]
-;;    (util/is-map? pointer))
+(defprocessor map-form
+  ([{:keys [value]}]
+   (util/is-map? value))
 
-;;   ([context]
-;;    (paired-element* 0 0 context)))
+  ([context state]
+   [(paired-element* 0 0 context)
+    state]))
 
-;; (defprocessor vector-form
-;;   ([{:keys [pointer]}]
-;;    (util/is-vector? pointer))
+(defprocessor vector-form
+  ([{:keys [value]}]
+   (util/is-vector? value))
 
-;;   ([context]
-;;    [[0 1] context]))
+  ([{:keys [child-index-effective]} state]
+   [(if (zero? child-index-effective)
+      [0 0]
+      [0 1])
+    state]))
 
-;; (defprocessor ns-block-form
-;;   ([{:keys [pointer]}]
-;;    (and (util/is-list? pointer)
-;;         (util/is-particular-keyword? (ast/down pointer) #{:require :import :use})
-;;         (util/is-particular-symbol? (ast/leftmost pointer) #{'ns})))
+(defprocessor ns-block-form
+  ([{:keys [value
+            first-effective-child
+            first-effective-sibling]}]
+   (and (util/is-list? value)
+        (util/is-particular-keyword? first-effective-child #{:require :import :use})
+        (util/is-particular-symbol? first-effective-sibling #{'ns})))
 
-;;   ([context]
-;;    [[1 1] context]))
+  ([{:keys [child-index-effective]} state]
+   [(if (zero? child-index-effective)
+      [0 0]
+      [1 1])
+    state]))
 
-;; (defprocessor defn-form
-;;   ([{:keys [pointer]}]
-;;    (and (util/is-list? pointer)
-;;         (util/is-particular-symbol? (ast/down pointer) #{'defn 'defn-})))
+(defprocessor defn-form
+  ([{:keys [value
+            first-effective-child]}]
+   (and (util/is-list? value)
+        (util/is-particular-symbol? first-effective-child #{'defn 'defn-})))
 
-;;   ([{:keys [pointer seen-name?]
-;;      :as context}]
-;;    ;; TODO: this needs more logic for the metadata
-;;    ;; TODO: multi arity
-;;    (let [likely-function-name? (or (util/is-symbol? pointer)
-;;                                    (util/is-meta? pointer))]
-;;      [(cond
-;;         seen-name? [1 1]
-;;         :else [0 1])
-;;       (cond-> context
-;;         (and (not seen-name?)
-;;              likely-function-name?) (assoc :seen-name? true))])))
+  ([{:keys [value
+            child-index-effective]}
+    {:keys [seen-name?]
+     :as state}]
+   ;; TODO: this needs more logic for the metadata
+   ;; TODO: multi arity
+   (let [likely-function-name? (or (util/is-symbol? value)
+                                   (util/is-meta? value))]
+     [(cond
+        (zero? child-index-effective) [0 0]
+        seen-name? [1 1]
+        :else [0 1])
+      (cond-> state
+        (and (pos? child-index-effective)
+             (not seen-name?)
+             likely-function-name?) (assoc :seen-name? true))])))
 
-;; (defprocessor def-form
-;;   ([{:keys [pointer]}]
-;;    (and (util/is-list? pointer)
-;;         (util/is-particular-symbol? (ast/down pointer) #{'def})))
+(defprocessor def-form
+  ([{:keys [value
+            first-effective-child]}]
+   (and (util/is-list? value)
+        (util/is-particular-symbol? first-effective-child #{'def})))
 
-;;   ([{:keys [pointer seen-name?]
-;;      :as context}]
-;;    ;; TODO: this needs more logic for the metadata
-;;    (let [likely-function-name? (or (util/is-symbol? pointer)
-;;                                    (util/is-meta? pointer))]
-;;      [(cond
-;;         seen-name? [1 1]
-;;         :else [0 1])
-;;       (cond-> context
-;;         (and (not seen-name?)
-;;              likely-function-name?) (assoc :seen-name? true))])))
+  ([{:keys [value child-index-effective]}
+    {:keys [seen-name?]
+     :as state}]
+   ;; TODO: this needs more logic for the metadata
+   (let [likely-function-name? (or (util/is-symbol? value)
+                                   (util/is-meta? value))]
+     [(cond
+        (zero? child-index-effective) [0 0]
+        seen-name? [1 1]
+        :else [0 1])
+      (cond-> state
+        (and (pos? child-index-effective)
+             (not seen-name?)
+             likely-function-name?) (assoc :seen-name? true))])))
 
-;; (defprocessor fn-form
-;;   ([{:keys [pointer]}]
-;;    (and (util/is-list? pointer)
-;;         (util/is-particular-symbol? (ast/down pointer) #{'fn})))
+(defprocessor fn-form
+  ([{:keys [value
+            first-effective-child]}]
+   (and (util/is-list? value)
+        (util/is-particular-symbol? first-effective-child #{'fn})))
 
-;;   ([{:keys [pointer seen-args?]
-;;      :as context}]
-;;    ;; TODO: this needs more logic for the metadata
-;;    ;; TODO: multi arity
-;;    (let [likely-args? (util/is-vector? pointer)]
-;;      [(cond
-;;         seen-args? [1 1]
-;;         :else [0 1])
-;;       (cond-> context
-;;         (and (not seen-args?)
-;;              likely-args?) (assoc :seen-args? true))])))
+  ([{:keys [value child-index-effective]}
+    {:keys [seen-args?]
+     :as state}]
+   ;; TODO: this needs more logic for the metadata
+   ;; TODO: multi arity
+   (let [likely-args? (util/is-vector? value)]
+     [(cond
+        (zero? child-index-effective) [0 0]
+        seen-args? [1 1]
+        :else [0 1])
+      (cond-> state
+        (and (pos? child-index-effective)
+             (not seen-args?)
+             likely-args?) (assoc :seen-args? true))])))
 
-;; (defprocessor let-like-bindings
-;;   ([{:keys [pointer index]}]
-;;    (or (and (util/is-vector? pointer)
-;;             (some-> pointer ast/leftmost (util/is-particular-symbol? #{'let 'doseq 'loop 'for}))
-;;             (= index 1))
-;;        (and (util/is-vector? pointer)
-;;             (some-> pointer ast/left (util/is-particular-keyword? #{:let}))
-;;             (some-> pointer ast/up util/is-vector?)
-;;             (= (some-> pointer ast/up ast/left)
-;;                (some-> pointer ast/up ast/leftmost))
-;;             (some-> pointer ast/up ast/left (util/is-particular-symbol? #{'for})))))
+(defprocessor let-like-bindings
+  ([{:keys [value child-index-effective
+            first-effective-sibling]}]
+   (or (and (util/is-vector? value)
+            (util/is-particular-symbol? first-effective-sibling #{'let 'doseq 'loop 'for})
+            (= child-index-effective 1))
+       ;; TODO: needs more context from the parent
+       #_(and (util/is-vector? value)
+              (-> parent "left" (util/is-particular-keyword? #{:let}))
+              (some-> pointer ast/up util/is-vector?)
+              (= (some-> pointer ast/up ast/left)
+                 (some-> pointer ast/up ast/leftmost))
+              (some-> pointer ast/up ast/left (util/is-particular-symbol? #{'for})))))
 
-;;   ([context]
-;;    (paired-element* 0 0 context)))
+  ([context state]
+   [(paired-element* 0 0 context)
+    state]))
 
-;; (defn- letfn-binding?
-;;   [{:keys [pointer index]}]
-;;   (and (util/is-vector? pointer)
-;;        (some-> pointer ast/leftmost (util/is-particular-symbol? #{'letfn}))
-;;        (= (or index
-;;               (util/effective-index pointer)) 1)))
+(defn- letfn-binding?
+  [{:keys [value child-index-effective
+           first-effective-sibling]}]
+  (and (util/is-vector? value)
+       (util/is-particular-symbol? first-effective-sibling #{'letfn})
+       (= child-index-effective 1)))
 
-;; (defprocessor letfn-bindings
-;;   ([context]
-;;    (letfn-binding? context))
+(defprocessor letfn-bindings
+  ([context]
+   (letfn-binding? context))
 
-;;   ([context]
-;;    [[1 0] context]))
+  ([{:keys [child-index-effective]} state]
+   [(if (zero? child-index-effective)
+      [0 0]
+      [1 0])
+    state]))
 
-;; (defn- block-form*
-;;   [num-args {:keys [index]
-;;              :as context}]
-;;   [(if (<= index num-args)
-;;      [0 1]
-;;      [1 1])
-;;    context])
+(defn- block-form*
+  [num-args {:keys [child-index-effective]}]
+  (cond
+    (zero? child-index-effective) [0 0]
+    (<= child-index-effective num-args) [0 1]
+    :else [1 1]))
 
-;; (defprocessor letfn-binding-function
-;;   ([{:keys [pointer]}]
-;;    (and (util/is-list? pointer)
-;;         (letfn-binding? {:pointer (ast/up pointer)})))
+(defprocessor letfn-binding-function
+  ([{:keys [value parent]}]
+   (and (util/is-list? value)
+        (letfn-binding? parent)))
 
-;;   ([context]
-;;    (block-form* 1 context)))
+  ([context state]
+   [(block-form* 1 context)
+    state]))
 
-;; (defprocessor block-form
-;;   ([{:keys [pointer]}]
-;;    (and (util/is-list? pointer)
-;;         (util/is-particular-symbol? (ast/down pointer) block-tokens)))
+(defprocessor block-form
+  ([{:keys [value
+            first-effective-child]}]
+   (and (util/is-list? value)
+        (util/is-particular-symbol? first-effective-child block-tokens)))
 
-;;   ([{:keys [pointer
-;;             index]
-;;      :as context}]
-;;    (let [num-args (-> pointer ast/leftmost ast/value second symbol block-tokens)]
-;;      (block-form* num-args context)))
+  ([{:keys [first-effective-sibling]
+     :as context}
+    state]
+   (let [num-args (-> first-effective-sibling second symbol block-tokens)]
+     [(block-form* num-args context)
+      state])))
 
-;;   )
+(defprocessor cond->-form
+  ([{:keys [value
+            first-effective-child]}]
+   (and (util/is-list? value)
+        (util/is-particular-symbol? first-effective-child #{'cond-> 'cond->>})))
 
-;; (defprocessor cond->-form
-;;   ([{:keys [pointer]}]
-;;    (and (util/is-list? pointer)
-;;         (util/is-particular-symbol? (ast/down pointer) #{'cond-> 'cond->>})))
+  ([context state]
+   [(paired-element* 2 1 context) state]))
 
-;;   ([context]
-;;    (paired-element* 2 1 context))
+(defprocessor cond-form
+  ([{:keys [value
+            first-effective-child]}]
+   (and (util/is-list? value)
+        (util/is-particular-symbol? first-effective-child #{'cond})))
 
-;;   )
+  ([context state]
+   [(paired-element* 1 1 context) state]))
 
-;; (defprocessor cond-form
-;;   ([{:keys [pointer]}]
-;;    (and (util/is-list? pointer)
-;;         (util/is-particular-symbol? (ast/down pointer) #{'cond})))
+(defprocessor case-form
+  ([{:keys [value
+            first-effective-child]}]
+   (and (util/is-list? value)
+        (util/is-particular-symbol? first-effective-child #{'case})))
 
-;;   ([context]
-;;    (paired-element* 1 1 context))
-
-;;   )
-
-;; (defprocessor case-form
-;;   ([{:keys [pointer]}]
-;;    (and (util/is-list? pointer)
-;;         (util/is-particular-symbol? (ast/down pointer) #{'case})))
-
-;;   ([context]
-;;    (paired-element* 2 1 context))
-
-;;   )
+  ([context state]
+   [(paired-element* 2 1 context) state]))
 
 ;; (defn- backtrack-if-multiline
 ;;   [{:keys [processed-children]}]

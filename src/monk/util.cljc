@@ -5,44 +5,38 @@
    [parcera.core :as parcera]))
 
 (defn is-particular-keyword?
-  [pointer keywords]
-  (let [value (ast/value pointer)]
-    (and value
-         (-> value first (= :keyword))
-         (-> value second (subs 1) keyword keywords))))
+  [ast keywords]
+  (and (-> ast first (= :keyword))
+       (-> ast second (subs 1) keyword keywords)))
 
 (defn is-particular-symbol?
-  [pointer symbols]
-  (let [value (ast/value pointer)]
-    (and value
-         (-> value first (= :symbol))
-         (-> value second symbol symbols))))
+  [ast symbols]
+  (and (-> ast first (= :symbol))
+       (-> ast second symbol symbols)))
 
 (defn is-symbol?
-  [pointer]
-  (let [value (ast/value pointer)]
-    (and value
-         (-> value first (= :symbol)))))
+  [ast]
+  (-> ast first (= :symbol)))
 
 (defn is-list?
-  [pointer]
-  (some-> pointer ast/value first (= :list)))
+  [ast]
+  (-> ast first (= :list)))
 
 (defn is-map?
-  [pointer]
-  (some-> pointer ast/value first (= :map)))
+  [ast]
+  (-> ast first (= :map)))
 
 (defn is-vector?
-  [pointer]
-  (some-> pointer ast/value first (= :vector)))
+  [ast]
+  (-> ast first (= :vector)))
 
 (defn is-meta?
-  [pointer]
-  (some-> pointer ast/value first (= :metadata)))
+  [ast]
+  (-> ast first (= :metadata)))
 
 (defn is-whitespace?
-  [pointer]
-  (some-> pointer ast/value first (= :whitespace)))
+  [ast]
+  (-> ast first (= :whitespace)))
 
 (defn- num-siblings-left-of
   [pointer]

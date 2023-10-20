@@ -5,21 +5,21 @@
    [monk.processor :as processor]))
 
 (def processors
-  [#_processor/ns-block-form
-   #_processor/defn-form
-   #_processor/def-form
-   #_processor/fn-form
-   #_processor/let-like-bindings
-   #_processor/letfn-bindings
-   #_processor/letfn-binding-function
-   #_processor/map-form
-   #_processor/vector-form
-   #_processor/case-form
-   #_processor/cond-form
-   #_processor/cond->-form
-   #_processor/block-form
+  [processor/ns-block-form
+   processor/defn-form
+   processor/def-form
+   processor/fn-form
+   processor/let-like-bindings
+   processor/letfn-bindings
+   processor/letfn-binding-function
+   processor/map-form
+   processor/vector-form
+   processor/case-form
+   processor/cond-form
+   processor/cond->-form
+   processor/block-form
    #_processor/function-form
-   #_processor/top-level-form
+   processor/top-level-form
    processor/default])
 
 (defn pick-processor
@@ -43,7 +43,13 @@
 
 (defn- traversible?
   [{:keys [value]}]
-  (get #{:code :list :vector :map :set} (first value)))
+  (get #{:code
+         :list
+         :vector
+         :map
+         :set
+         :metadata}
+       (first value)))
 
 (defn form-kind
   [[tag & _rest]]
@@ -66,8 +72,14 @@
 (defn process-children
   [{:keys [value]
     :as context}]
-  (let [processor (pick-processor context)
-        [tag & children] value
+  (let [[tag & children] value
+        first-effective-child (first (filter (fn [child]
+                                               (-> child
+                                                   form-kind
+                                                   (= :effective)))
+                                             children))
+        parent-context (assoc context :first-effective-child first-effective-child)
+        processor (pick-processor parent-context)
         process-child (fn [[last-child-index
                             last-effective-child-index
                             processed-children] child-value]
@@ -81,27 +93,31 @@
                                                       (inc-or-zero last-effective-child-index)
                                                       last-effective-child-index)
                               child-context {:value child-value
-                                             :parent context
+                                             :parent parent-context
                                              :child-index child-index
                                              :child-index-effective child-index-effective
+                                             :first-effective-sibling first-effective-child
                                              :delimiter? delimiter?
                                              :effective? effective?}
                               processed-child (transform* child-context)]
                           [child-index
                            child-index-effective
-                           (conj processed-children (assoc context
-                                                           :processed-child-context child-context
-                                                           :processed-child processed-child))]))
+                           (conj processed-children (assoc child-context :processed-value processed-child))]))
         [_ _ processed-children] (reduce process-child [nil nil []] children)]
-    (into [tag]
-          (mapcat (fn [{:keys [processed-child-context
-                               processed-child]}]
-                    (if (:delimiter? processed-child-context)
-                      [processed-child]
-                      (let [[newlines spaces] (processor processed-child-context)]
-                        [(ast/whitespace-node newlines spaces)
-                         processed-child]))))
-          processed-children)))
+    (first (reduce (fn [[result state]
+                        {:keys [processed-value
+                                delimiter?]
+                         :as child-context}]
+                     (if delimiter?
+                       [(conj result processed-value)
+                        state]
+                       (let [[[newlines spaces] new-state] (processor child-context state)]
+                         [(conj result
+                                (ast/whitespace-node newlines spaces)
+                                processed-value)
+                          new-state])))
+                   [[tag] {}]
+                   processed-children))))
 
 (defn transform*
   [{:keys [value]
