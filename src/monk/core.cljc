@@ -6,9 +6,8 @@
 
 (defn reformat-string
   [data & {:as _options}]
-  (-> (ast/make-pointer [] (ast/parse data))
+  (-> (ast/parse data)
       transform/remove-whitespace
       transform/transform
-      :ast
       transform/concretize-whitespace
       parcera/code))

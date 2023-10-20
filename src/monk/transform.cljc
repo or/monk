@@ -2,90 +2,117 @@
   (:require
    [clojure.walk :as walk]
    [monk.ast :as ast]
-   [monk.processor :as processor]
-   [monk.util :as util]))
-
-(defn remove-whitespace
-  [{:keys [ast]}]
-  (ast/make-pointer []
-                    (walk/postwalk
-                     (fn [data]
-                       (if (vector? data)
-                         (vec (remove (fn [x]
-                                        (and (vector? x)
-                                             (= :whitespace (first x))))
-                                      data))
-                         data))
-                     ast)))
-
-(defn- add-spaces
-  [pointer [newlines spaces]]
-  (ast/insert-newlines-and-spaces pointer newlines spaces))
-
-(declare transform)
+   [monk.processor :as processor]))
 
 (def processors
-  [processor/ns-block-form
-   processor/defn-form
-   processor/def-form
-   processor/fn-form
-   processor/let-like-bindings
-   processor/letfn-bindings
-   processor/letfn-binding-function
-   processor/map-form
-   processor/vector-form
-   processor/case-form
-   processor/cond-form
-   processor/cond->-form
-   processor/block-form
-   processor/function-form
-   processor/top-level-form
+  [#_processor/ns-block-form
+   #_processor/defn-form
+   #_processor/def-form
+   #_processor/fn-form
+   #_processor/let-like-bindings
+   #_processor/letfn-bindings
+   #_processor/letfn-binding-function
+   #_processor/map-form
+   #_processor/vector-form
+   #_processor/case-form
+   #_processor/cond-form
+   #_processor/cond->-form
+   #_processor/block-form
+   #_processor/function-form
+   #_processor/top-level-form
    processor/default])
 
 (defn pick-processor
   [context]
-  (first (keep (fn [{:keys [detector]
-                     :as processor}]
+  (first (keep (fn [{:keys [detector processor]}]
                  (when (detector context)
                    processor))
                processors)))
 
-(defn- process-children*
-  [first-child context processor]
-  (loop [child first-child
-         context context
-         processed-children []]
-    (let [effective-context (assoc context
-                                   :index (util/effective-index child)
-                                   :pointer child)
-          [spaces new-context] (if (= child first-child)
-                                 [[0 0] context]
-                                 (processor effective-context))
-          adjusted-child (add-spaces child spaces)
-          adjusted-child (transform adjusted-child)
-          next-child (ast/right adjusted-child)]
-      (if (ast/value next-child)
-        (recur next-child new-context (conj processed-children [effective-context adjusted-child]))
-        [(ast/up adjusted-child) processed-children]))))
+(defn remove-whitespace
+  [ast]
+  (walk/postwalk
+   (fn [data]
+     (if (vector? data)
+       (vec (remove (fn [x]
+                      (and (vector? x)
+                           (= :whitespace (first x))))
+                    data))
+       data))
+   ast))
+
+(defn- traversible?
+  [{:keys [value]}]
+  (get #{:code :list :vector :map :set} (first value)))
+
+(defn form-kind
+  [[tag & _rest]]
+  (cond
+    (#{:whitespace
+       :comment} tag) :delimiter
+
+    (#{:discard} tag) :ineffective
+
+    :else :effective))
+
+(defn- inc-or-zero
+  [value]
+  (if value
+    (inc value)
+    0))
+
+(declare transform*)
+
+(defn process-children
+  [{:keys [value]
+    :as context}]
+  (let [processor (pick-processor context)
+        [tag & children] value
+        process-child (fn [[last-child-index
+                            last-effective-child-index
+                            processed-children] child-value]
+                        (let [kind (form-kind child-value)
+                              delimiter? (= kind :delimiter)
+                              effective? (= kind :effective)
+                              child-index (if delimiter?
+                                            last-child-index
+                                            (inc-or-zero last-child-index))
+                              child-index-effective (if effective?
+                                                      (inc-or-zero last-effective-child-index)
+                                                      last-effective-child-index)
+                              child-context {:value child-value
+                                             :parent context
+                                             :child-index child-index
+                                             :child-index-effective child-index-effective
+                                             :delimiter? delimiter?
+                                             :effective? effective?}
+                              processed-child (transform* child-context)]
+                          [child-index
+                           child-index-effective
+                           (conj processed-children (assoc context
+                                                           :processed-child-context child-context
+                                                           :processed-child processed-child))]))
+        [_ _ processed-children] (reduce process-child [nil nil []] children)]
+    (into [tag]
+          (mapcat (fn [{:keys [processed-child-context
+                               processed-child]}]
+                    (if (:delimiter? processed-child-context)
+                      [processed-child]
+                      (let [[newlines spaces] (processor processed-child-context)]
+                        [(ast/whitespace-node newlines spaces)
+                         processed-child]))))
+          processed-children)))
+
+(defn transform*
+  [{:keys [value]
+    :as context}]
+  (if (traversible? context)
+    (process-children context)
+    value))
 
 (defn transform
-  [pointer]
-  (if (ast/value (ast/down pointer))
-    (let [effective-index (util/effective-index pointer)
-          {:keys [processor backtracker]} (pick-processor {:pointer pointer
-                                                           :index effective-index})]
-      (loop [pass 0
-             context {}]
-        (let [[adjusted-pointer processed-children] (process-children* (ast/down pointer)
-                                                                       (assoc context :pass pass)
-                                                                       processor)]
-          (if-let [new-context (backtracker {:pointer pointer
-                                             :index effective-index
-                                             :pass pass
-                                             :processed-children processed-children})]
-            (recur (inc pass) new-context)
-            adjusted-pointer))))
-    pointer))
+  [ast]
+  (transform* {:value ast}))
 
 (def ^:private element-widths
   {:code [0 0]
