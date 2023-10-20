@@ -1,7 +1,7 @@
 (ns monk.processor
   (:require
-   [monk.macro :refer [defprocessor]]
-   [monk.util :as util]))
+   [monk.ast :as ast]
+   [monk.macro :refer [defprocessor]]))
 
 (def ^:private block-tokens
   {'ns 1
@@ -56,7 +56,7 @@
 
 (defprocessor map-form
   ([{:keys [ast]}]
-   (util/is-map? ast))
+   (ast/is-map? ast))
 
   ([context state]
    [(paired-element* 0 0 context)
@@ -64,7 +64,7 @@
 
 (defprocessor vector-form
   ([{:keys [ast]}]
-   (util/is-vector? ast))
+   (ast/is-vector? ast))
 
   ([{:keys [index]} state]
    [(if (zero? index)
@@ -76,9 +76,9 @@
   ([{:keys [ast
             first-child
             first-sibling]}]
-   (and (util/is-list? ast)
-        (util/is-particular-keyword? first-child #{:require :import :use})
-        (util/is-particular-symbol? first-sibling #{'ns})))
+   (and (ast/is-list? ast)
+        (ast/is-particular-keyword? first-child #{:require :import :use})
+        (ast/is-particular-symbol? first-sibling #{'ns})))
 
   ([{:keys [index]} state]
    [(if (zero? index)
@@ -89,8 +89,8 @@
 (defprocessor defn-form
   ([{:keys [ast
             first-child]}]
-   (and (util/is-list? ast)
-        (util/is-particular-symbol? first-child #{'defn 'defn-})))
+   (and (ast/is-list? ast)
+        (ast/is-particular-symbol? first-child #{'defn 'defn-})))
 
   ([{:keys [ast
             index]}
@@ -98,8 +98,8 @@
      :as state}]
    ;; TODO: this needs more logic for the metadata
    ;; TODO: multi arity
-   (let [likely-function-name? (or (util/is-symbol? ast)
-                                   (util/is-meta? ast))]
+   (let [likely-function-name? (or (ast/is-symbol? ast)
+                                   (ast/is-meta? ast))]
      [(cond
         (zero? index) [0 0]
         seen-name? [1 1]
@@ -112,15 +112,15 @@
 (defprocessor def-form
   ([{:keys [ast
             first-child]}]
-   (and (util/is-list? ast)
-        (util/is-particular-symbol? first-child #{'def})))
+   (and (ast/is-list? ast)
+        (ast/is-particular-symbol? first-child #{'def})))
 
   ([{:keys [ast index]}
     {:keys [seen-name?]
      :as state}]
    ;; TODO: this needs more logic for the metadata
-   (let [likely-function-name? (or (util/is-symbol? ast)
-                                   (util/is-meta? ast))]
+   (let [likely-function-name? (or (ast/is-symbol? ast)
+                                   (ast/is-meta? ast))]
      [(cond
         (zero? index) [0 0]
         seen-name? [1 1]
@@ -133,15 +133,15 @@
 (defprocessor fn-form
   ([{:keys [ast
             first-child]}]
-   (and (util/is-list? ast)
-        (util/is-particular-symbol? first-child #{'fn})))
+   (and (ast/is-list? ast)
+        (ast/is-particular-symbol? first-child #{'fn})))
 
   ([{:keys [ast index]}
     {:keys [seen-args?]
      :as state}]
    ;; TODO: this needs more logic for the metadata
    ;; TODO: multi arity
-   (let [likely-args? (util/is-vector? ast)]
+   (let [likely-args? (ast/is-vector? ast)]
      [(cond
         (zero? index) [0 0]
         seen-args? [1 1]
@@ -157,14 +157,14 @@
             last-sibling
             first-sibling
             parent]}]
-   (or (and (util/is-vector? ast)
-            (util/is-particular-symbol? first-sibling #{'let 'doseq 'loop 'for})
+   (or (and (ast/is-vector? ast)
+            (ast/is-particular-symbol? first-sibling #{'let 'doseq 'loop 'for})
             (= index 1))
-       (and (util/is-vector? ast)
-            (util/is-particular-keyword? last-sibling #{:let})
-            (util/is-vector? (:ast parent))
+       (and (ast/is-vector? ast)
+            (ast/is-particular-keyword? last-sibling #{:let})
+            (ast/is-vector? (:ast parent))
             (= (:index parent) 1)
-            (util/is-particular-symbol? (:first-sibling parent) #{'for}))))
+            (ast/is-particular-symbol? (:first-sibling parent) #{'for}))))
 
   ([context state]
    [(paired-element* 0 0 context)
@@ -173,8 +173,8 @@
 (defn- letfn-binding?
   [{:keys [ast index
            first-sibling]}]
-  (and (util/is-vector? ast)
-       (util/is-particular-symbol? first-sibling #{'letfn})
+  (and (ast/is-vector? ast)
+       (ast/is-particular-symbol? first-sibling #{'letfn})
        (= index 1)))
 
 (defprocessor letfn-bindings
@@ -196,7 +196,7 @@
 
 (defprocessor letfn-binding-function
   ([{:keys [ast parent]}]
-   (and (util/is-list? ast)
+   (and (ast/is-list? ast)
         (letfn-binding? parent)))
 
   ([context state]
@@ -206,8 +206,8 @@
 (defprocessor block-form
   ([{:keys [ast
             first-child]}]
-   (and (util/is-list? ast)
-        (util/is-particular-symbol? first-child block-tokens)))
+   (and (ast/is-list? ast)
+        (ast/is-particular-symbol? first-child block-tokens)))
 
   ([{:keys [first-sibling]
      :as context}
@@ -219,8 +219,8 @@
 (defprocessor cond->-form
   ([{:keys [ast
             first-child]}]
-   (and (util/is-list? ast)
-        (util/is-particular-symbol? first-child #{'cond-> 'cond->>})))
+   (and (ast/is-list? ast)
+        (ast/is-particular-symbol? first-child #{'cond-> 'cond->>})))
 
   ([context state]
    [(paired-element* 2 1 context) state]))
@@ -228,8 +228,8 @@
 (defprocessor cond-form
   ([{:keys [ast
             first-child]}]
-   (and (util/is-list? ast)
-        (util/is-particular-symbol? first-child #{'cond})))
+   (and (ast/is-list? ast)
+        (ast/is-particular-symbol? first-child #{'cond})))
 
   ([context state]
    [(paired-element* 1 1 context) state]))
@@ -237,15 +237,15 @@
 (defprocessor case-form
   ([{:keys [ast
             first-child]}]
-   (and (util/is-list? ast)
-        (util/is-particular-symbol? first-child #{'case})))
+   (and (ast/is-list? ast)
+        (ast/is-particular-symbol? first-child #{'case})))
 
   ([context state]
    [(paired-element* 2 1 context) state]))
 
 (defprocessor function-form
   ([{:keys [ast]}]
-   (util/is-list? ast))
+   (ast/is-list? ast))
 
   ([{:keys [index
             require-linebreaks?]}

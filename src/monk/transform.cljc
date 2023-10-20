@@ -2,8 +2,7 @@
   (:require
    [clojure.walk :as walk]
    [monk.ast :as ast]
-   [monk.processor :as processor]
-   [monk.util :as util]))
+   [monk.processor :as processor]))
 
 (def processors
   [processor/ns-block-form
@@ -81,7 +80,7 @@
                                    children))
         parent-context (assoc context
                               :first-child first-child
-                              :thread-first-form? (util/thread-first-form? ast first-child))
+                              :thread-first-form? (ast/thread-first-form? ast first-child))
         parent-index (:index parent-context)
         parent-thread-first-form? (:thread-first-form? parent)
         processor (pick-processor parent-context)
@@ -113,8 +112,8 @@
                              processed-child
                              last-sibling)]))
         [_ processed-children] (reduce process-child [nil [] nil] children)
-        multiline?-per-child (map (comp util/multiline? :processed-ast) processed-children)
-        num-chunks-per-child (map (comp util/num-chunks :processed-ast) processed-children)
+        multiline?-per-child (map (comp ast/multiline? :processed-ast) processed-children)
+        num-chunks-per-child (map (comp ast/num-chunks :processed-ast) processed-children)
         require-linebreaks? (or (some identity multiline?-per-child)
                                 (< (+ (count processed-children) 2)
                                    (apply + num-chunks-per-child)))]
