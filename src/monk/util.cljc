@@ -56,7 +56,7 @@
        inc))
 
 (defn thread-first-form?
-  [ast first-effective-child]
+  [ast first-child]
   (and (-> ast first (= :list))
-       (-> first-effective-child first (= :symbol))
-       (-> first-effective-child second (str/ends-with? "->"))))
+       (-> first-child first (= :symbol))
+       (-> first-child second (str/ends-with? "->"))))

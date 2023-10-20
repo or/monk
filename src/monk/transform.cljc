@@ -43,14 +43,14 @@
    ast))
 
 (defn- traversible?
-  [{:keys [value]}]
+  [{:keys [ast]}]
   (get #{:code
          :list
          :vector
          :map
          :set
          :metadata}
-       (first value)))
+       (first ast)))
 
 (defn form-kind
   [[tag & _rest]]
@@ -63,73 +63,67 @@
     :else :effective))
 
 (defn- inc-or-zero
-  [value]
-  (if value
-    (inc value)
+  [ast]
+  (if ast
+    (inc ast)
     0))
 
 (declare transform*)
 
 (defn process-children
-  [{:keys [value parent]
+  [{:keys [ast parent]
     :as context}]
-  (let [[tag & children] value
-        first-effective-child (first (filter (fn [child]
-                                               (-> child
-                                                   form-kind
-                                                   (= :effective)))
-                                             children))
+  (let [[tag & children] ast
+        first-child (first (filter (fn [child]
+                                     (-> child
+                                         form-kind
+                                         (= :effective)))
+                                   children))
         parent-context (assoc context
-                              :first-effective-child first-effective-child
-                              :thread-first-form? (util/thread-first-form? value first-effective-child))
-        parent-child-index-effective (:child-index-effective parent-context)
+                              :first-child first-child
+                              :thread-first-form? (util/thread-first-form? ast first-child))
+        parent-index (:index parent-context)
         parent-thread-first-form? (:thread-first-form? parent)
         processor (pick-processor parent-context)
-        process-child (fn [[last-child-index
-                            last-effective-child-index
+        process-child (fn [[previous-index
                             processed-children
-                            last-effective-sibling] child-value]
-                        (let [kind (form-kind child-value)
+                            last-sibling] child-ast]
+                        (let [kind (form-kind child-ast)
                               delimiter? (= kind :delimiter)
                               effective? (= kind :effective)
-                              child-index (if delimiter?
-                                            last-child-index
-                                            (inc-or-zero last-child-index))
-                              child-index-effective (if effective?
-                                                      (let [new-index (inc-or-zero last-effective-child-index)]
-                                                        (if (and parent-thread-first-form?
-                                                                 (< 1 parent-child-index-effective)
-                                                                 (= new-index 1))
-                                                          (inc new-index)
-                                                          new-index))
-                                                      last-effective-child-index)
-                              child-context {:value child-value
+                              index (if effective?
+                                      (let [new-index (inc-or-zero previous-index)]
+                                        (if (and parent-thread-first-form?
+                                                 (< 1 parent-index)
+                                                 (= new-index 1))
+                                          (inc new-index)
+                                          new-index))
+                                      previous-index)
+                              child-context {:ast child-ast
                                              :parent parent-context
-                                             :child-index child-index
-                                             :child-index-effective child-index-effective
-                                             :first-effective-sibling first-effective-child
-                                             :last-effective-sibling last-effective-sibling
+                                             :index index
+                                             :first-sibling first-child
+                                             :last-sibling last-sibling
                                              :delimiter? delimiter?
                                              :effective? effective?}
                               processed-child (transform* child-context)]
-                          [child-index
-                           child-index-effective
-                           (conj processed-children (assoc child-context :processed-value processed-child))
+                          [index
+                           (conj processed-children (assoc child-context :processed-ast processed-child))
                            (if effective?
                              processed-child
-                             last-effective-sibling)]))
-        [_ _ processed-children] (reduce process-child [nil nil [] nil] children)
-        multiline?-per-child (map (comp util/multiline? :processed-value) processed-children)
-        num-chunks-per-child (map (comp util/num-chunks :processed-value) processed-children)
+                             last-sibling)]))
+        [_ processed-children] (reduce process-child [nil [] nil] children)
+        multiline?-per-child (map (comp util/multiline? :processed-ast) processed-children)
+        num-chunks-per-child (map (comp util/num-chunks :processed-ast) processed-children)
         require-linebreaks? (or (some identity multiline?-per-child)
                                 (< (+ (count processed-children) 2)
                                    (apply + num-chunks-per-child)))]
     (first (reduce (fn [[result state]
-                        {:keys [processed-value
+                        {:keys [processed-ast
                                 delimiter?]
                          :as child-context}]
                      (if delimiter?
-                       [(conj result processed-value)
+                       [(conj result processed-ast)
                         state]
                        (let [[[newlines spaces]
                               new-state] (processor (assoc child-context
@@ -141,21 +135,21 @@
                               (cond->
                                 (or (pos? newlines)
                                     (pos? spaces)) (conj (ast/whitespace-node newlines spaces)))
-                              (conj processed-value))
+                              (conj processed-ast))
                           new-state])))
                    [[tag] {}]
                    processed-children))))
 
 (defn transform*
-  [{:keys [value]
+  [{:keys [ast]
     :as context}]
   (if (traversible? context)
     (process-children context)
-    value))
+    ast))
 
 (defn transform
   [ast]
-  (transform* {:value ast}))
+  (transform* {:ast ast}))
 
 (def ^:private element-widths
   {:code [0 0]
