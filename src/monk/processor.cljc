@@ -1,6 +1,5 @@
 (ns monk.processor
   (:require
-   [monk.ast :as ast]
    [monk.macro :refer [defprocessor]]
    [monk.util :as util]))
 
@@ -153,18 +152,19 @@
              likely-args?) (assoc :seen-args? true))])))
 
 (defprocessor let-like-bindings
-  ([{:keys [value child-index-effective
-            first-effective-sibling]}]
+  ([{:keys [value
+            child-index-effective
+            last-effective-sibling
+            first-effective-sibling
+            parent]}]
    (or (and (util/is-vector? value)
             (util/is-particular-symbol? first-effective-sibling #{'let 'doseq 'loop 'for})
             (= child-index-effective 1))
-       ;; TODO: needs more context from the parent
-       #_(and (util/is-vector? value)
-              (-> parent "left" (util/is-particular-keyword? #{:let}))
-              (some-> pointer ast/up util/is-vector?)
-              (= (some-> pointer ast/up ast/left)
-                 (some-> pointer ast/up ast/leftmost))
-              (some-> pointer ast/up ast/left (util/is-particular-symbol? #{'for})))))
+       (and (util/is-vector? value)
+            (util/is-particular-keyword? last-effective-sibling #{:let})
+            (util/is-vector? (:value parent))
+            (= (:child-index-effective parent) 1)
+            (util/is-particular-symbol? (:first-effective-sibling parent) #{'for}))))
 
   ([context state]
    [(paired-element* 0 0 context)
@@ -243,48 +243,17 @@
   ([context state]
    [(paired-element* 2 1 context) state]))
 
-;; (defn- backtrack-if-multiline
-;;   [{:keys [processed-children]}]
-;;   (loop [[[_ child-pointer] & rest] processed-children]
-;;     (if (and child-pointer
-;;              (util/multiline? child-pointer))
-;;       {}
-;;       (when (seq rest)
-;;         (recur rest)))))
+(defprocessor function-form
+  ([{:keys [value]}]
+   (util/is-list? value))
 
-;; (defn- backtrack-if-many-chunks
-;;   [{:keys [processed-children]}]
-;;   (loop [[[_ child-pointer] & rest] processed-children
-;;          num-children 0
-;;          num-chunks 0]
-;;     (when child-pointer
-;;       (let [num-children (inc num-children)
-;;             num-chunks (+ num-chunks (util/num-chunks child-pointer))]
-;;         (if (< (+ num-children 1)
-;;                num-chunks)
-;;           {}
-;;           (when (seq rest)
-;;             (recur rest num-children num-chunks)))))))
-
-;; (defn- backtrack-if-complex
-;;   [{:keys [pass]
-;;     :as context}]
-;;   (when (zero? pass)
-;;     (or (backtrack-if-multiline context)
-;;         (backtrack-if-many-chunks context))))
-
-;; (defprocessor function-form
-;;   ([{:keys [pointer]}]
-;;    (util/is-list? pointer))
-
-;;   ([{:keys [pass index]
-;;      :as context}]
-;;    (cond
-;;      (zero? pass) [[0 1] context]
-;;      (pos? pass) (if (= 1 index)
-;;                    [[0 1] context]
-;;                    [[1 :first-arg] context])
-;;      :else [[1 1] context]))
-
-;;   ([context]
-;;    (backtrack-if-complex context)))
+  ([{:keys [child-index-effective
+            require-linebreaks?]}
+    state]
+   [(cond
+      (zero? child-index-effective) [0 0]
+      require-linebreaks? (if (= 1 child-index-effective)
+                            [0 1]
+                            [1 :first-arg])
+      :else [0 1])
+    state]))

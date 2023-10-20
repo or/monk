@@ -1,8 +1,6 @@
 (ns monk.util
   (:require
-   [clojure.string :as str]
-   [monk.ast :as ast]
-   [parcera.core :as parcera]))
+   [clojure.string :as str]))
 
 (defn is-particular-keyword?
   [ast keywords]
@@ -38,39 +36,9 @@
   [ast]
   (-> ast first (= :whitespace)))
 
-(defn- num-siblings-left-of
-  [pointer]
-  ;; TODO: needs work
-  (loop [num-siblings 0
-         pointer (ast/left pointer)]
-    (let [value (ast/value pointer)]
-      (cond
-        (nil? value) num-siblings
-        (-> value first (= :whitespace)) (recur num-siblings (ast/left pointer))
-        :else (recur (inc num-siblings) (ast/left pointer))))))
-
-(def ^:private thread-first-tokens
-  #{'-> 'cond->})
-
-(defn effective-index
-  [pointer]
-  (let [naive-index (num-siblings-left-of pointer)]
-    (if-let [parent (ast/up pointer)]
-      (if (and (some-> parent ast/leftmost (is-particular-symbol? thread-first-tokens))
-               (< 1 (effective-index parent))
-               (pos? naive-index))
-        (inc naive-index)
-        naive-index)
-      naive-index)))
-
-(def includes?
-  #?(:clj (fn [^String a ^String b]
-            (.contains a b))
-     :cljs str/includes?))
-
 (defn multiline?
-  [pointer]
-  (->> (tree-seq sequential? seq (ast/value pointer))
+  [ast]
+  (->> (tree-seq sequential? seq ast)
        (filter (fn [node]
                  (and (vector? node)
                       (-> node first (= :whitespace))
@@ -78,11 +46,17 @@
        seq))
 
 (defn num-chunks
-  [pointer]
-  (->> (tree-seq sequential? seq (ast/value pointer))
+  [ast]
+  (->> (tree-seq sequential? seq ast)
        (filter (fn [node]
                  (and (vector? node)
                       (-> node first (= :whitespace)))))
        (take 3)
        count
        inc))
+
+(defn thread-first-form?
+  [ast first-effective-child]
+  (and (-> ast first (= :list))
+       (-> first-effective-child first (= :symbol))
+       (-> first-effective-child second (str/ends-with? "->"))))

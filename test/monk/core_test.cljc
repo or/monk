@@ -134,8 +134,7 @@
     |      :when (even? z)]
     |  [x y])"
 
-    ;; TODO: needs more context
-    #_"(for [x (range 100)
+    "(for [x (range 100)
     |      y (range 100)
     |      :let [z (* x y)
     |            foobar (inc z)]
@@ -211,56 +210,56 @@
     |      (assoc :another :value))
     |  (assoc :key :whatever))"
 
-    ;; "(-> some-map
-    ;; |  (->
-    ;; |    (assoc :key :value)
-    ;; |    (assoc :another :value))
-    ;; |  (assoc :key :whatever))"
+    "(-> some-map
+    |  (->
+    |    (assoc :key :value)
+    |    (assoc :another :value))
+    |  (assoc :key :whatever))"
 
-    ;; "(-> some-map
-    ;; |  (assoc :key :whatever)
-    ;; |  (->
-    ;; |    (assoc :key :value)
-    ;; |    (assoc :another :value))
-    ;; |  (assoc :key :whatever))"
+    "(-> some-map
+    |  (assoc :key :whatever)
+    |  (->
+    |    (assoc :key :value)
+    |    (assoc :another :value))
+    |  (assoc :key :whatever))"
 
-    ;; ; ->>
-    ;; "(->> some-list
-    ;; |  (map :key)
-    ;; |  (filter identity)
-    ;; |  count)"
+    ; ->>
+    "(->> some-list
+    |  (map :key)
+    |  (filter identity)
+    |  count)"
 
-    ;; "(-> some-list
-    ;; |  (conj :whatever)
-    ;; |  (->>
-    ;; |    (map :key)
-    ;; |    (filter identity))
-    ;; |  count)"
+    "(-> some-list
+    |  (conj :whatever)
+    |  (->>
+    |    (map :key)
+    |    (filter identity))
+    |  count)"
 
-    ;; ; as->
-    ;; "(as-> some-map name
-    ;; |  (assoc :key name)
-    ;; |  (assoc :another name))"
+    ; as->
+    "(as-> some-map name
+    |  (assoc :key name)
+    |  (assoc :another name))"
 
-    ;; ;; ; TODO: line break after the first argument if necessary
-    ;; ;; #_"(as-> (-> some-map
-    ;; ;; |        (assoc :key :value)
-    ;; ;; |        (assoc :another :value))
-    ;; ;; |      name
-    ;; ;; |  (assoc :key name))"
+    ;; ; TODO: line break after the first argument if necessary
+    ;; #_"(as-> (-> some-map
+    ;; |        (assoc :key :value)
+    ;; |        (assoc :another :value))
+    ;; |      name
+    ;; |  (assoc :key name))"
 
-    ;; "(-> some-map
-    ;; |  (as-> name
-    ;; |    (assoc :key name)
-    ;; |    (assoc :another name))
-    ;; |  (assoc :key :whatever))"
+    "(-> some-map
+    |  (as-> name
+    |    (assoc :key name)
+    |    (assoc :another name))
+    |  (assoc :key :whatever))"
 
-    ;; "(-> some-map
-    ;; |  (assoc :key :whatever)
-    ;; |  (as-> name
-    ;; |    (assoc :key name)
-    ;; |    (assoc :another name))
-    ;; |  (assoc :key :whatever))"
+    "(-> some-map
+    |  (assoc :key :whatever)
+    |  (as-> name
+    |    (assoc :key name)
+    |    (assoc :another name))
+    |  (assoc :key :whatever))"
 
     ; cond->
     "(cond-> some-map
@@ -279,26 +278,26 @@
     |  another-value (assoc :key :whatever)
     |  default-value)"
 
-    ;; ; function call
-    ;; "(some-function arg1 arg2 arg3)"
+    ; function call
+    "(some-function arg1 arg2 arg3)"
 
-    ;; "(some-function arg1
-    ;; |               (do
-    ;; |                 (something)
-    ;; |                 (something-else))
-    ;; |               arg3)"
+    "(some-function arg1
+    |               (do
+    |                 (something)
+    |                 (something-else))
+    |               arg3)"
 
-    ;; "(some-function arg1 (arg2) (arg3))"
+    "(some-function arg1 (arg2) (arg3))"
 
-    ;; "(some-function arg1 (arg2 1) (arg3 2))"
+    "(some-function arg1 (arg2 1) (arg3 2))"
 
-    ;; "(some-function arg1
-    ;; |               (arg2 1 :foo)
-    ;; |               (arg3 2))"
+    "(some-function arg1
+    |               (arg2 1 :foo)
+    |               (arg3 2))"
 
-    ;; "(some-function (arg1 :foo)
-    ;; |               (arg2 1)
-    ;; |               (arg3 2))"
+    "(some-function (arg1 :foo)
+    |               (arg2 1)
+    |               (arg3 2))"
 
     ;
     ))
