@@ -7,7 +7,6 @@
 (defn format-string
   [data & {:as _options}]
   (-> (ast/parse data)
-      transform/move-postfix-comments
       transform/remove-whitespace
       transform/transform
       transform/concretize-whitespace

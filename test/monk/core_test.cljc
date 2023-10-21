@@ -334,21 +334,3 @@
 
     ;
     ))
-
-(deftest format-string-with-changes
-  (are [input output]
-       (= (sut/format-string (prepare-str input))
-          (prepare-str output))
-
-    ; postfix comment
-    "(some-function arg1
-    |               arg2 ; a comment where it shouldn't be
-    |               arg3)"
-
-    "(some-function arg1
-    |               ; a comment where it shouldn't be
-    |               arg2
-    |               arg3)"
-
-    ;
-    ))
