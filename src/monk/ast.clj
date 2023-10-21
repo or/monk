@@ -28,6 +28,10 @@
   (and (-> ast first (= :symbol))
        (-> ast second symbol symbols)))
 
+(defn is-top-level?
+  [ast]
+  (-> ast first (= :code)))
+
 (defn is-symbol?
   [ast]
   (-> ast first (= :symbol)))
@@ -51,6 +55,10 @@
 (defn is-whitespace?
   [ast]
   (-> ast first (= :whitespace)))
+
+(defn is-comment?
+  [ast]
+  (-> ast first (= :comment)))
 
 (defn multiline?
   [ast]

@@ -299,5 +299,38 @@
     |               (arg2 1)
     |               (arg3 2))"
 
+    ; comments
+    "(do
+    |  ; a comment for the next line
+    |  (some-stuff)
+    |  (some-more)
+    |  (still-more-stuff))"
+
+    "(do
+    |  (some-stuff)
+    |  ; a comment for the next line
+    |  (some-more)
+    |  (still-more-stuff))"
+
+    "(do
+    |  (some-stuff)
+    |  ; a comment for the next line
+    |  ; this one has more than one
+    |  ; line
+    |  (some-more)
+    |  (still-more-stuff))"
+
+    "(some-function ; a comment
+    |               arg1
+    |               arg2)"
+
+    "(; a comment
+    | )"
+
+    "; top level comment
+    |(ns some-namespace)
+    |
+    |; top level comment at the end"
+
     ;
     ))

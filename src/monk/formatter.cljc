@@ -34,9 +34,7 @@
 
 (defformatter top-level-form
   ([{:keys [ast]}]
-   (-> ast
-       first
-       (= :code)))
+   (ast/is-top-level? ast))
 
   ([{:keys [index]} state]
    [(if (zero? index)

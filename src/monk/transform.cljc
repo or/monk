@@ -110,10 +110,13 @@
         tag (first ast)
         multiline?-per-child (map (comp ast/multiline? :transformed-ast) transformed-children)
         num-chunks-per-child (map (comp ast/num-chunks :transformed-ast) transformed-children)
-        require-linebreaks? (or (some identity multiline?-per-child)
+        comment-children? (some identity (map (comp ast/is-comment? :transformed-ast) transformed-children))
+        require-linebreaks? (or comment-children?
+                                (some identity multiline?-per-child)
                                 (< (+ (count transformed-children) 2)
                                    (apply + num-chunks-per-child)))
         extra-context {:require-linebreaks? require-linebreaks?
+                       :comment-children? comment-children?
                        :multiline?-per-child multiline?-per-child
                        :num-chunks-per-child num-chunks-per-child}
         format-child (fn [[result state]
@@ -127,6 +130,7 @@
                            [(-> result
                                 (cond->
                                   (or (pos? newlines)
+                                      (keyword? spaces)
                                       (pos? spaces)) (conj (ast/whitespace-node newlines spaces)))
                                 (conj transformed-ast))
                             new-state])))]
@@ -136,6 +140,43 @@
                          (reduce format-child [[] {}])
                          first
                          (into [tag]))))))
+
+(defn- add-comments
+  [children comments initial-whitespace-node]
+  (let [whitespace-node (ast/whitespace-node 1 :previous-arg)]
+    (-> children
+        (cond->
+          initial-whitespace-node (conj initial-whitespace-node))
+        (into (interpose whitespace-node comments))
+        (cond->
+          initial-whitespace-node (conj (ast/whitespace-node 1 :previous-arg))))))
+
+(defn- process-comments
+  [{:keys [ast]
+    :as context}]
+  (let [[tag & children] ast
+        process-comment (fn [[result comments] child]
+                          (let [[tag & _] child]
+                            (if (= tag :comment)
+                              [result
+                               (conj comments child)]
+                              (if (empty? comments)
+                                [(conj result child) comments]
+                                (if (ast/is-whitespace? child)
+                                  [(add-comments result comments child) []]
+                                  [(-> result
+                                       (add-comments comments nil)
+                                       (conj (ast/whitespace-node 1 0))
+                                       (conj child)) []])))))
+        [processed-children comments] (reduce process-comment [[] []] children)
+        processed-children (cond-> processed-children
+                             (seq comments) (->
+                                              (cond->
+                                                (ast/is-top-level? ast) (conj (ast/whitespace-node 2 0)))
+                                              (add-comments comments nil)
+                                              (cond->
+                                                (not (ast/is-top-level? ast)) (conj (ast/whitespace-node 1 0)))))]
+    (assoc context :ast (into [tag] processed-children))))
 
 (defn- traversible?
   [{:keys [ast]}]
@@ -152,7 +193,8 @@
   (cond-> context
     (traversible? context) (->
                              transform-children
-                             process-children)))
+                             process-children
+                             process-comments)))
 
 (defn transform
   [ast]
@@ -196,35 +238,37 @@
   (let [[pre post] (get element-widths ast-first)
         new-base-indentation (+ column pre)
         new-column (+ column pre)
-        [new-ast-rest new-current-column] (cond
-                                            (= ast-first
-                                               :whitespace) (let [{:keys [newlines spaces]} (first ast-rest)
-                                                                  spaces (cond
-                                                                           (= spaces :first-arg) (second arg-columns)
-                                                                           (pos? newlines) (+ base-indentation spaces)
-                                                                           :else spaces)]
-                                                              [[(apply str (concat (repeat newlines "\n")
-                                                                                   (repeat spaces " ")))]
-                                                               (if (pos? newlines)
-                                                                 spaces
-                                                                 (+ column spaces))])
-                                            (and (= (count ast-rest) 1)
-                                                 (string? (first ast-rest))) [ast-rest
-                                                                              (+ column (count (first ast-rest)))]
-                                            (and (zero? pre)
-                                                 (zero? post)
-                                                 (not (get #{:code :metadata} ast-first))) [ast-rest (+ new-column (count (first ast-rest)))]
-                                            :else (reduce (fn [[new-ast-rest current-column arg-columns] child]
-                                                            (let [new-arg-columns (conj arg-columns (inc current-column))
-                                                                  [new-child
-                                                                   new-column] (concretize-whitespace* child new-base-indentation new-arg-columns current-column)]
-                                                              [(conj new-ast-rest new-child)
-                                                               new-column
-                                                               new-arg-columns]))
-                                                          [[]
-                                                           new-column
-                                                           []]
-                                                          ast-rest))]
+        [new-ast-rest
+         new-current-column] (cond
+                               (= ast-first
+                                  :whitespace) (let [{:keys [newlines spaces]} (first ast-rest)
+                                                     spaces (cond
+                                                              (= spaces :first-arg) (if (< (count arg-columns) 3)
+                                                                                      1
+                                                                                      (nth arg-columns 2))
+                                                              (= spaces :previous-arg) (last arg-columns)
+                                                              (pos? newlines) (+ base-indentation spaces)
+                                                              :else spaces)]
+                                                 [[(apply str (concat (repeat newlines "\n")
+                                                                      (repeat spaces " ")))]
+                                                  (if (pos? newlines)
+                                                    spaces
+                                                    (+ column spaces))])
+                               (and (= (count ast-rest) 1)
+                                    (string? (first ast-rest))) [ast-rest (+ new-column (count (first ast-rest)))]
+                               (and (zero? pre)
+                                    (zero? post)
+                                    (not (get #{:code :metadata} ast-first))) [ast-rest (+ new-column (count (first ast-rest)))]
+                               :else (reduce (fn [[new-ast-rest current-column arg-columns] child]
+                                               (let [[new-child
+                                                      new-column] (concretize-whitespace* child new-base-indentation arg-columns current-column)]
+                                                 [(conj new-ast-rest new-child)
+                                                  new-column
+                                                  (conj arg-columns current-column)]))
+                                             [[]
+                                              new-column
+                                              []]
+                                             ast-rest))]
     [(into [ast-first] new-ast-rest)
      new-current-column]))
 
