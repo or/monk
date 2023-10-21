@@ -1,7 +1,7 @@
-(ns monk.processor
+(ns monk.formatter
   (:require
    [monk.ast :as ast]
-   [monk.macro :refer [defprocessor]]))
+   [monk.macro :refer [defformatter]]))
 
 (def ^:private block-tokens
   {'ns 1
@@ -22,7 +22,7 @@
    '->> 1
    'as-> 2})
 
-(defprocessor default
+(defformatter default
   ([_context]
    true)
 
@@ -32,7 +32,7 @@
       [0 1])
     state]))
 
-(defprocessor top-level-form
+(defformatter top-level-form
   ([{:keys [ast]}]
    (-> ast
        first
@@ -54,7 +54,7 @@
     (even? (- index num-args)) [1 first-element-indentation]
     :else [0 1]))
 
-(defprocessor map-form
+(defformatter map-form
   ([{:keys [ast]}]
    (ast/is-map? ast))
 
@@ -62,7 +62,7 @@
    [(paired-element* 0 0 context)
     state]))
 
-(defprocessor vector-form
+(defformatter vector-form
   ([{:keys [ast]}]
    (ast/is-vector? ast))
 
@@ -72,7 +72,7 @@
       [0 1])
     state]))
 
-(defprocessor ns-block-form
+(defformatter ns-block-form
   ([{:keys [ast
             first-child
             first-sibling]}]
@@ -86,7 +86,7 @@
       [1 1])
     state]))
 
-(defprocessor defn-form
+(defformatter defn-form
   ([{:keys [ast
             first-child]}]
    (and (ast/is-list? ast)
@@ -109,7 +109,7 @@
              (not seen-name?)
              likely-function-name?) (assoc :seen-name? true))])))
 
-(defprocessor def-form
+(defformatter def-form
   ([{:keys [ast
             first-child]}]
    (and (ast/is-list? ast)
@@ -130,7 +130,7 @@
              (not seen-name?)
              likely-function-name?) (assoc :seen-name? true))])))
 
-(defprocessor fn-form
+(defformatter fn-form
   ([{:keys [ast
             first-child]}]
    (and (ast/is-list? ast)
@@ -151,7 +151,7 @@
              (not seen-args?)
              likely-args?) (assoc :seen-args? true))])))
 
-(defprocessor let-like-bindings
+(defformatter let-like-bindings
   ([{:keys [ast
             index
             last-sibling
@@ -177,7 +177,7 @@
        (ast/is-particular-symbol? first-sibling #{'letfn})
        (= index 1)))
 
-(defprocessor letfn-bindings
+(defformatter letfn-bindings
   ([context]
    (letfn-binding? context))
 
@@ -194,7 +194,7 @@
     (<= index num-args) [0 1]
     :else [1 1]))
 
-(defprocessor letfn-binding-function
+(defformatter letfn-binding-function
   ([{:keys [ast parent]}]
    (and (ast/is-list? ast)
         (letfn-binding? parent)))
@@ -203,7 +203,7 @@
    [(block-form* 1 context)
     state]))
 
-(defprocessor block-form
+(defformatter block-form
   ([{:keys [ast
             first-child]}]
    (and (ast/is-list? ast)
@@ -216,7 +216,7 @@
      [(block-form* num-args context)
       state])))
 
-(defprocessor cond->-form
+(defformatter cond->-form
   ([{:keys [ast
             first-child]}]
    (and (ast/is-list? ast)
@@ -225,7 +225,7 @@
   ([context state]
    [(paired-element* 2 1 context) state]))
 
-(defprocessor cond-form
+(defformatter cond-form
   ([{:keys [ast
             first-child]}]
    (and (ast/is-list? ast)
@@ -234,7 +234,7 @@
   ([context state]
    [(paired-element* 1 1 context) state]))
 
-(defprocessor case-form
+(defformatter case-form
   ([{:keys [ast
             first-child]}]
    (and (ast/is-list? ast)
@@ -243,7 +243,7 @@
   ([context state]
    [(paired-element* 2 1 context) state]))
 
-(defprocessor function-form
+(defformatter function-form
   ([{:keys [ast]}]
    (ast/is-list? ast))
 

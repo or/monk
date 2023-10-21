@@ -2,32 +2,32 @@
   (:require
    [clojure.walk :as walk]
    [monk.ast :as ast]
-   [monk.processor :as processor]))
+   [monk.formatter :as formatter]))
 
-(def processors
-  [processor/ns-block-form
-   processor/defn-form
-   processor/def-form
-   processor/fn-form
-   processor/let-like-bindings
-   processor/letfn-bindings
-   processor/letfn-binding-function
-   processor/map-form
-   processor/vector-form
-   processor/case-form
-   processor/cond-form
-   processor/cond->-form
-   processor/block-form
-   processor/function-form
-   processor/top-level-form
-   processor/default])
+(def formatters
+  [formatter/ns-block-form
+   formatter/defn-form
+   formatter/def-form
+   formatter/fn-form
+   formatter/let-like-bindings
+   formatter/letfn-bindings
+   formatter/letfn-binding-function
+   formatter/map-form
+   formatter/vector-form
+   formatter/case-form
+   formatter/cond-form
+   formatter/cond->-form
+   formatter/block-form
+   formatter/function-form
+   formatter/top-level-form
+   formatter/default])
 
-(defn pick-processor
+(defn pick-formatter
   [context]
-  (first (keep (fn [{:keys [detector processor]}]
+  (first (keep (fn [{:keys [detector formatter]}]
                  (when (detector context)
-                   processor))
-               processors)))
+                   formatter))
+               formatters)))
 
 (defn remove-whitespace
   [ast]
@@ -40,16 +40,6 @@
                     data))
        data))
    ast))
-
-(defn- traversible?
-  [{:keys [ast]}]
-  (get #{:code
-         :list
-         :vector
-         :map
-         :set
-         :metadata}
-       (first ast)))
 
 (defn form-kind
   [[tag & _rest]]
@@ -69,86 +59,104 @@
 
 (declare transform*)
 
-(defn process-children
-  [{:keys [ast parent]
+(defn- transform-children
+  [{:keys [parent
+           ast]
     :as context}]
-  (let [[tag & children] ast
+  (let [index-in-parent (:index context)
+        parent-thread-first-form? (:thread-first-form? parent)
+        [_ & children] ast
         first-child (first (filter (fn [child]
                                      (-> child
                                          form-kind
                                          (= :effective)))
                                    children))
-        parent-context (assoc context
-                              :first-child first-child
-                              :thread-first-form? (ast/thread-first-form? ast first-child))
-        parent-index (:index parent-context)
-        parent-thread-first-form? (:thread-first-form? parent)
-        processor (pick-processor parent-context)
-        process-child (fn [[previous-index
-                            processed-children
-                            last-sibling] child-ast]
-                        (let [kind (form-kind child-ast)
-                              delimiter? (= kind :delimiter)
-                              effective? (= kind :effective)
-                              index (if effective?
-                                      (let [new-index (inc-or-zero previous-index)]
-                                        (if (and parent-thread-first-form?
-                                                 (< 1 parent-index)
-                                                 (= new-index 1))
-                                          (inc new-index)
-                                          new-index))
-                                      previous-index)
-                              child-context {:ast child-ast
-                                             :parent parent-context
-                                             :index index
-                                             :first-sibling first-child
-                                             :last-sibling last-sibling
-                                             :delimiter? delimiter?
-                                             :effective? effective?}
-                              processed-child (transform* child-context)]
-                          [index
-                           (conj processed-children (assoc child-context :processed-ast processed-child))
-                           (if effective?
-                             processed-child
-                             last-sibling)]))
-        [_ processed-children] (reduce process-child [nil [] nil] children)
-        multiline?-per-child (map (comp ast/multiline? :processed-ast) processed-children)
-        num-chunks-per-child (map (comp ast/num-chunks :processed-ast) processed-children)
+        context (assoc context
+                       :first-child first-child
+                       :thread-first-form? (ast/thread-first-form? ast first-child))
+        transform-child (fn [[previous-index
+                              transformed-children
+                              last-sibling] child-ast]
+                          (let [kind (form-kind child-ast)
+                                delimiter? (= kind :delimiter)
+                                effective? (= kind :effective)
+                                index (if effective?
+                                        (let [new-index (inc-or-zero previous-index)]
+                                          (if (and parent-thread-first-form?
+                                                   (< 1 index-in-parent)
+                                                   (= new-index 1))
+                                            (inc new-index)
+                                            new-index))
+                                        previous-index)
+                                child-context {:ast child-ast
+                                               :parent context
+                                               :index index
+                                               :first-sibling first-child
+                                               :last-sibling last-sibling
+                                               :delimiter? delimiter?
+                                               :effective? effective?}
+                                transformed-child (:ast (transform* child-context))]
+                            [index
+                             (conj transformed-children (assoc child-context :transformed-ast transformed-child))
+                             (if effective?
+                               transformed-child
+                               last-sibling)]))]
+    (assoc context :transformed-children (second (reduce transform-child [nil [] nil] children)))))
+
+(defn- process-children
+  [{:keys [ast transformed-children]
+    :as context}]
+  (let [formatter (pick-formatter context)
+        tag (first ast)
+        multiline?-per-child (map (comp ast/multiline? :transformed-ast) transformed-children)
+        num-chunks-per-child (map (comp ast/num-chunks :transformed-ast) transformed-children)
         require-linebreaks? (or (some identity multiline?-per-child)
-                                (< (+ (count processed-children) 2)
-                                   (apply + num-chunks-per-child)))]
-    (first (reduce (fn [[result state]
-                        {:keys [processed-ast
-                                delimiter?]
-                         :as child-context}]
-                     (if delimiter?
-                       [(conj result processed-ast)
-                        state]
-                       (let [[[newlines spaces]
-                              new-state] (processor (assoc child-context
-                                                           :require-linebreaks? require-linebreaks?
-                                                           :multiline?-per-child multiline?-per-child
-                                                           :num-chunks-per-child num-chunks-per-child)
-                                                    state)]
-                         [(-> result
-                              (cond->
-                                (or (pos? newlines)
-                                    (pos? spaces)) (conj (ast/whitespace-node newlines spaces)))
-                              (conj processed-ast))
-                          new-state])))
-                   [[tag] {}]
-                   processed-children))))
+                                (< (+ (count transformed-children) 2)
+                                   (apply + num-chunks-per-child)))
+        extra-context {:require-linebreaks? require-linebreaks?
+                       :multiline?-per-child multiline?-per-child
+                       :num-chunks-per-child num-chunks-per-child}
+        format-child (fn [[result state]
+                          {:keys [transformed-ast delimiter?]
+                           :as child-context}]
+                       (if delimiter?
+                         [(conj result transformed-ast)
+                          state]
+                         (let [[[newlines spaces]
+                                new-state] (formatter (merge child-context extra-context) state)]
+                           [(-> result
+                                (cond->
+                                  (or (pos? newlines)
+                                      (pos? spaces)) (conj (ast/whitespace-node newlines spaces)))
+                                (conj transformed-ast))
+                            new-state])))]
+    (-> context
+        (dissoc :transformed-children)
+        (assoc :ast (->> transformed-children
+                         (reduce format-child [[] {}])
+                         first
+                         (into [tag]))))))
+
+(defn- traversible?
+  [{:keys [ast]}]
+  (get #{:code
+         :list
+         :vector
+         :map
+         :set
+         :metadata}
+       (first ast)))
 
 (defn transform*
-  [{:keys [ast]
-    :as context}]
-  (if (traversible? context)
-    (process-children context)
-    ast))
+  [context]
+  (cond-> context
+    (traversible? context) (->
+                             transform-children
+                             process-children)))
 
 (defn transform
   [ast]
-  (transform* {:ast ast}))
+  (:ast (transform* {:ast ast})))
 
 (def ^:private element-widths
   {:code [0 0]

@@ -86,4 +86,4 @@
            reg-fx [[:inner 0]]
            fn-traced [[:inner 0]]
            defmigration [[:inner 0]]
-           defprocessor [[:inner 0]]}}
+           defformatter [[:inner 0]]}}
