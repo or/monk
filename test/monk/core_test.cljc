@@ -12,7 +12,7 @@
 
 (deftest format-string
   (are [input]
-       (= (sut/reformat-string (prepare-str input))
+       (= (sut/format-string (prepare-str input))
           (prepare-str input))
 
     ; ns

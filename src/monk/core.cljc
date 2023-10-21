@@ -4,7 +4,7 @@
    [monk.transform :as transform]
    [parcera.core :as parcera]))
 
-(defn reformat-string
+(defn format-string
   [data & {:as _options}]
   (-> (ast/parse data)
       transform/remove-whitespace
