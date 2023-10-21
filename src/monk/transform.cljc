@@ -1,5 +1,6 @@
 (ns monk.transform
   (:require
+   [clojure.string :as str]
    [clojure.walk :as walk]
    [monk.ast :as ast]
    [monk.formatter :as formatter]))
@@ -28,6 +29,51 @@
                  (when (detector context)
                    formatter))
                formatters)))
+
+(defn- postfix-comment-without-whitespace?
+  [previous-element element]
+  (and (ast/is-comment? element)
+       previous-element
+       (not (ast/is-comment? previous-element))
+       (not (ast/is-whitespace? previous-element))))
+
+(defn- postfix-comment-with-whitespace?
+  [previous-previous-element previous-element element]
+  (and (ast/is-comment? element)
+       previous-element
+       previous-previous-element
+       (ast/is-whitespace? previous-element)
+       (-> previous-element second (str/includes? "\n") not)
+       (not (ast/is-comment? previous-previous-element))))
+
+(defn- move-postfix-comments*
+  [[first-element & rest-elements]]
+  (letfn [(swap-elements
+            [[[previous-element previous-previous-element & rest
+               :as result] last-was-swapped?] element]
+            (cond
+              last-was-swapped? [(conj result element) false]
+              (postfix-comment-without-whitespace?
+               previous-element element) [(conj rest element previous-element) true]
+              (postfix-comment-with-whitespace?
+               previous-previous-element
+               previous-element element) [(conj rest element previous-element previous-previous-element) true]
+              :else [(conj result element) false]))]
+
+    (-> (reduce swap-elements ['() false] rest-elements)
+        first
+        reverse
+        (conj first-element)
+        vec)))
+
+(defn move-postfix-comments
+  [ast]
+  (walk/postwalk
+   (fn [data]
+     (if (vector? data)
+       (move-postfix-comments* data)
+       data))
+   ast))
 
 (defn remove-whitespace
   [ast]
