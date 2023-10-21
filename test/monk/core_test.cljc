@@ -261,6 +261,15 @@
     |    (assoc :another name))
     |  (assoc :key :whatever))"
 
+    "(-> some-map
+    |  (as-> name
+    |    (some-function arg1
+    |                   (do
+    |                     (some-stuff))
+    |                   arg3)
+    |    (assoc :another name))
+    |  (assoc :key :whatever))"
+
     ; cond->
     "(cond-> some-map
     |  something-truthy? (assoc :key :whatever)

@@ -242,6 +242,10 @@
          new-current-column] (cond
                                (= ast-first
                                   :whitespace) (let [{:keys [newlines spaces]} (first ast-rest)
+                                                     newlines (if (and (= spaces :first-arg)
+                                                                       (< (count arg-columns) 3))
+                                                                0
+                                                                newlines)
                                                      spaces (cond
                                                               (= spaces :first-arg) (if (< (count arg-columns) 3)
                                                                                       1
