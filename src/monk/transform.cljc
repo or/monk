@@ -283,3 +283,66 @@
 (defn concretize-whitespace
   [ast]
   (first (concretize-whitespace* ast 0 [] 0)))
+
+(defn- combine-metadata-entries-into-map
+  [entries]
+  (into [:map]
+        (first (reduce
+                (fn [[result seen-keys] [_ entry-data]]
+                  (let [new-entries (cond
+                                      (ast/is-map? entry-data) (map vec (partition 2 (rest entry-data)))
+                                      (ast/is-symbol? entry-data) [[[:keyword ":tag"] entry-data]]
+                                      :else [[entry-data [:symbol "true"]]])]
+                    (loop [[[new-key
+                             :as new-entry] & remaining-entries] new-entries
+                           result result
+                           seen-keys seen-keys]
+                      (cond
+                        (nil? new-key) [result seen-keys]
+
+                        (get seen-keys new-key) (recur remaining-entries result seen-keys)
+
+                        :else (recur remaining-entries
+                                     (into result new-entry)
+                                     (conj seen-keys new-key))))))
+
+                [[] #{}]
+                entries))))
+
+(defn- dedupe-inline-metadata-entries
+  [entries]
+  (first (reduce
+          (fn [[result seen-keys] [_ key
+                                   :as entry]]
+            (let [effective-key (if (ast/is-symbol? key)
+                                  "symbol"
+                                  key)]
+              (if (get seen-keys effective-key)
+                [result seen-keys]
+                [(conj result entry) (conj seen-keys effective-key)])))
+          [[] #{}]
+          entries)))
+
+(defn unify-metadata
+  [ast]
+  (walk/postwalk
+   (fn [data]
+     (if (and (vector? data)
+              (ast/is-metadata? data))
+       (let [entries (subvec data 1 (dec (count data)))
+             map-entries? (some (comp ast/is-map? second) entries)
+             inline-entries? (some (comp not ast/is-map? second) entries)]
+         (cond
+           (and map-entries?
+                inline-entries?) [(first data)
+                                  [:metadata_entry (combine-metadata-entries-into-map entries)]
+                                  (last data)]
+
+           (and (not map-entries?)
+                inline-entries?) (vec (concat [(first data)]
+                                              (dedupe-inline-metadata-entries entries)
+                                              [(last data)]))
+
+           :else data))
+       data))
+   ast))

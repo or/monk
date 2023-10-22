@@ -8,6 +8,7 @@
   [data & {:as _options}]
   (-> (ast/parse data)
       transform/remove-whitespace
+      transform/unify-metadata
       transform/transform
       transform/concretize-whitespace
       parcera/code))

@@ -411,3 +411,28 @@
 
     ;
     ))
+
+(deftest format-string-changes
+  (are [input output]
+       (= (sut/format-string (prepare-str input))
+          (prepare-str output))
+
+    ; metadata unification
+    "^:private ^{:foo :bar} ^String foobar"
+    "^{:private true
+    |  :foo :bar
+    |  :tag String}
+    |foobar"
+
+    ; first occurrence of a key wins
+    "^:private ^{:private :bar} ^String ^Integer foobar"
+    "^{:private true
+    |  :tag String}
+    |foobar"
+
+    ; dedupe inline metadata entries
+    "^:private ^String ^:private ^Integer foobar"
+    "^:private ^String foobar"
+
+    ;
+    ))
