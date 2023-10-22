@@ -341,5 +341,29 @@
     |
     |; top level comment at the end"
 
+    ; discarded forms
+    "(foobar #_arg1 arg2 arg3)"
+
+    "(foobar #_arg1 #_arg2 #_arg3)"
+
+    "{:key :value
+    | #_key
+    | :another :value}"
+
+    ;; TODO: smart discard positioning
+    ;; "{:key :value
+    ;; | #_:key2 :#_2
+    ;; | :another :value}"
+
+    ;; "{:key :value
+    ;; | :another #_:value
+    ;; | #_:key2  :value}"
+
+    ; TODO: smart discard positioning
+    ;; "(do
+    ;; |  #_#_(some-stuff)
+    ;; |  (more-stuff)
+    ;; |  (some-more-stuff))"
+
     ;
     ))

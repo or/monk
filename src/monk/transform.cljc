@@ -74,34 +74,34 @@
         context (assoc context
                        :first-child first-child
                        :thread-first-form? (ast/thread-first-form? ast first-child))
-        transform-child (fn [[previous-index
+        transform-child (fn [[current-index
                               transformed-children
                               last-sibling] child-ast]
                           (let [kind (form-kind child-ast)
                                 delimiter? (= kind :delimiter)
                                 effective? (= kind :effective)
-                                index (if effective?
-                                        (let [new-index (inc-or-zero previous-index)]
-                                          (if (and parent-thread-first-form?
-                                                   (< 1 index-in-parent)
-                                                   (= new-index 1))
-                                            (inc new-index)
-                                            new-index))
-                                        previous-index)
+                                next-index (if effective?
+                                             (let [new-index (inc-or-zero current-index)]
+                                               (if (and parent-thread-first-form?
+                                                        (< 1 index-in-parent)
+                                                        (= new-index 1))
+                                                 (inc new-index)
+                                                 new-index))
+                                             current-index)
                                 child-context {:ast child-ast
                                                :parent context
-                                               :index index
+                                               :index current-index
                                                :first-sibling first-child
                                                :last-sibling last-sibling
                                                :delimiter? delimiter?
                                                :effective? effective?}
                                 transformed-child (:ast (transform* child-context))]
-                            [index
+                            [next-index
                              (conj transformed-children (assoc child-context :transformed-ast transformed-child))
                              (if effective?
                                transformed-child
                                last-sibling)]))]
-    (assoc context :transformed-children (second (reduce transform-child [nil [] nil] children)))))
+    (assoc context :transformed-children (second (reduce transform-child [0 [] nil] children)))))
 
 (defn- process-children
   [{:keys [ast transformed-children]
@@ -185,7 +185,8 @@
          :vector
          :map
          :set
-         :metadata}
+         :metadata
+         :discard}
        (first ast)))
 
 (defn transform*
