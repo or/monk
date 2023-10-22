@@ -393,9 +393,9 @@
     ;; |  (some-more-stuff))"
 
     ; metadata
-    "^:foo ^:bar ^String foobar"
+    "^:bar ^:foo ^String foobar"
 
-    "^:foo ^:bar ^String (do
+    "^:bar ^:foo ^String (do
     |                      (some-stuff))"
 
     "^{:foo :bar} foobar"
@@ -419,8 +419,8 @@
 
     ; metadata unification
     "^:private ^{:foo :bar} ^String foobar"
-    "^{:private true
-    |  :foo :bar
+    "^{:foo :bar
+    |  :private true
     |  :tag String}
     |foobar"
 
@@ -431,7 +431,7 @@
     |foobar"
 
     ; dedupe inline metadata entries
-    "^:private ^String ^:private ^Integer foobar"
+    "^String ^:private ^:private ^Integer foobar"
     "^:private ^String foobar"
 
     ;
