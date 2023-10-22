@@ -71,7 +71,7 @@
     |  (some-stuff arg1 arg2)
     |  (more-stuff arg3))"
 
-    #_"(defn function-name
+    "(defn function-name
     |  \"Some doc string\"
     |  [arg1
     |   arg2

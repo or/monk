@@ -64,10 +64,12 @@
   ([{:keys [ast]}]
    (ast/is-vector? ast))
 
-  ([{:keys [index]} state]
-   [(if (zero? index)
-      [0 0]
-      [0 1])
+  ([{:keys [index
+            require-linebreaks?]} state]
+   [(cond
+      (zero? index) [0 0]
+      require-linebreaks? [1 0]
+      :else [0 1])
     state]))
 
 (defformatter ns-block-form
