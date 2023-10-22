@@ -48,9 +48,13 @@
   [ast]
   (-> ast first (= :vector)))
 
-(defn is-meta?
+(defn is-metadata?
   [ast]
   (-> ast first (= :metadata)))
+
+(defn is-metadata-entry?
+  [ast]
+  (-> ast first (= :metadata_entry)))
 
 (defn is-whitespace?
   [ast]

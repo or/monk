@@ -71,6 +71,13 @@
     |  (some-stuff arg1 arg2)
     |  (more-stuff arg3))"
 
+    "(defn ^{:private true
+    |        :tag String}
+    |      function-name
+    |  [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2)
+    |  (more-stuff arg3))"
+
     "(defn function-name
     |  \"Some doc string\"
     |  [arg1
@@ -384,6 +391,23 @@
     ;; |  #_#_(some-stuff)
     ;; |  (more-stuff)
     ;; |  (some-more-stuff))"
+
+    ; metadata
+    "^:foo ^:bar ^String foobar"
+
+    "^:foo ^:bar ^String (do
+    |                      (some-stuff))"
+
+    "^{:foo :bar} foobar"
+
+    "^{:foo :bar
+    |  :tag String}
+    |foobar"
+
+    "(foo-bar arg1
+    |         ^String (do
+    |                   (some-stuff))
+    |         ^{:foo :bar} arg3)"
 
     ;
     ))

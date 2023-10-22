@@ -123,7 +123,7 @@
            ; function name?
            (or (ast/is-symbol? ast)
                ; TODO: check must be smart enough to look inside
-               (ast/is-meta? ast))) (assoc :seen-name? true)
+               (ast/is-metadata? ast))) (assoc :seen-name? true)
 
       (and (pos? index)
            seen-name?
@@ -139,7 +139,7 @@
            (ast/is-list? ast)
            (or (some-> ast second ast/is-vector?)
                ; TODO: check must be smart enough to look inside
-               (some-> ast second ast/is-meta?))) (assoc :seen-multi-arity? true))]))
+               (some-> ast second ast/is-metadata?))) (assoc :seen-multi-arity? true))]))
 
 (defformatter defn-multi-arity-function
   ([{:keys [ast parent
@@ -147,7 +147,7 @@
    (and (ast/is-list? ast)
         (or (ast/is-vector? first-child)
             ; TODO: check must be smart enough to look inside
-            (ast/is-meta? first-child))
+            (ast/is-metadata? first-child))
         (fn-supporting-multi-arity-form? parent)))
 
   ([{:keys [index]} state]
@@ -167,7 +167,7 @@
      :as state}]
    ; TODO: this needs more logic for the metadata
    (let [likely-function-name? (or (ast/is-symbol? ast)
-                                   (ast/is-meta? ast))]
+                                   (ast/is-metadata? ast))]
      [(cond
         (zero? index) [0 0]
         seen-name? [1 1]
@@ -191,7 +191,7 @@
    (let [multi-arity-block? (and (ast/is-list? ast)
                                  (or (some-> ast second ast/is-vector?)
                                      ; TODO: check must be smart enough to look inside
-                                     (some-> ast second ast/is-meta?)))]
+                                     (some-> ast second ast/is-metadata?)))]
      [(cond
         (zero? index) [0 0]
         seen-multi-arity? [2 1]
@@ -233,7 +233,7 @@
            first-sibling]}]
   (and (or (ast/is-vector? ast)
            ; TODO: check must be smart enough to look inside
-           (ast/is-meta? ast))
+           (ast/is-metadata? ast))
        (ast/is-particular-symbol? first-sibling #{'letfn})
        (= index 1)))
 
@@ -310,3 +310,16 @@
                             [1 :first-arg])
       :else [0 1])
     state]))
+
+(defformatter metadata-form
+  ([{:keys [ast]}]
+   (ast/is-metadata? ast))
+
+  ([{:keys [ast index multiline?-per-child]} state]
+   (let [require-linebreaks? (some identity (drop-last multiline?-per-child))]
+     [(cond
+        (zero? index) [0 0]
+        (not require-linebreaks?) [0 1]
+        (ast/is-metadata-entry? ast) [0 1]
+        :else [1 0])
+      state])))

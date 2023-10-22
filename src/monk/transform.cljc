@@ -13,6 +13,7 @@
    formatter/let-like-bindings
    formatter/letfn-bindings
    formatter/letfn-binding-function
+   formatter/metadata-form
    formatter/map-form
    formatter/vector-form
    formatter/case-form
@@ -187,6 +188,7 @@
          :map
          :set
          :metadata
+         :metadata_entry
          :discard}
        (first ast)))
 
