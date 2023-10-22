@@ -79,6 +79,16 @@
     |    :as multi-line-destructuring-or-long}]
     |  (body))"
 
+    "(defn function-name
+    |  ([arg1]
+    |   (body))
+    |
+    |  (^String [arg1 arg2]
+    |   (body))
+    |
+    |  ([arg1 arg2 arg3]
+    |   (body)))"
+
     ; fn
     "(fn [arg1 arg2 arg3]
     |  (some-stuff arg1 arg2)
@@ -87,6 +97,16 @@
     "(fn function-name [arg1 arg2 arg3]
     |  (some-stuff arg1 arg2)
     |  (more-stuff arg3))"
+
+    "(fn
+    |  ([arg1]
+    |   (body))
+    |
+    |  (^String [arg1 arg2]
+    |   (body))
+    |
+    |  ([arg1 arg2 arg3]
+    |   (body)))"
 
     ; def
     "(def var-name

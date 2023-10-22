@@ -7,6 +7,7 @@
 (def formatters
   [formatter/ns-block-form
    formatter/defn-form
+   formatter/defn-multi-arity-function
    formatter/def-form
    formatter/fn-form
    formatter/let-like-bindings

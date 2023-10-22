@@ -22,6 +22,13 @@
    '->> 1
    'as-> 2})
 
+(defn- block-form*
+  [num-args {:keys [index]}]
+  (cond
+    (zero? index) [0 0]
+    (<= index num-args) [0 1]
+    :else [1 1]))
+
 (defformatter default
   ([_context]
    true)
@@ -86,6 +93,12 @@
       [1 1])
     state]))
 
+(defn- fn-supporting-multi-arity-form?
+  [{:keys [ast
+           first-child]}]
+  (and (ast/is-list? ast)
+       (ast/is-particular-symbol? first-child #{'defn 'defn- 'fn})))
+
 (defformatter defn-form
   ([{:keys [ast
             first-child]}]
@@ -94,20 +107,54 @@
 
   ([{:keys [ast
             index]}
-    {:keys [seen-name?]
+    {:keys [seen-name?
+            seen-args?
+            seen-multi-arity?]
      :as state}]
-   ;; TODO: this needs more logic for the metadata
-   ;; TODO: multi arity
-   (let [likely-function-name? (or (ast/is-symbol? ast)
-                                   (ast/is-meta? ast))]
-     [(cond
-        (zero? index) [0 0]
-        seen-name? [1 1]
-        :else [0 1])
-      (cond-> state
-        (and (pos? index)
-             (not seen-name?)
-             likely-function-name?) (assoc :seen-name? true))])))
+   ; TODO: this needs more logic for the metadata
+   [(cond
+      (zero? index) [0 0]
+      seen-multi-arity? [2 1]
+      seen-name? [1 1]
+      :else [0 1])
+    (cond-> state
+      (and (pos? index)
+           (not seen-name?)
+           ; function name?
+           (or (ast/is-symbol? ast)
+               ; TODO: check must be smart enough to look inside
+               (ast/is-meta? ast))) (assoc :seen-name? true)
+
+      (and (pos? index)
+           seen-name?
+           (not seen-multi-arity?)
+           (not seen-args?)
+           ; args?
+           ; TODO: also needs a metadata check, but it must be smart enough to look inside
+           (ast/is-vector? ast)) (assoc :seen-args? true)
+
+      (and (pos? index)
+           (not seen-args?)
+           ; multi arity block?
+           (ast/is-list? ast)
+           (or (some-> ast second ast/is-vector?)
+               ; TODO: check must be smart enough to look inside
+               (some-> ast second ast/is-meta?))) (assoc :seen-multi-arity? true))]))
+
+(defformatter defn-multi-arity-function
+  ([{:keys [ast parent
+            first-child]}]
+   (and (ast/is-list? ast)
+        (or (ast/is-vector? first-child)
+            ; TODO: check must be smart enough to look inside
+            (ast/is-meta? first-child))
+        (fn-supporting-multi-arity-form? parent)))
+
+  ([{:keys [index]} state]
+   [(if (zero? index)
+      [0 0]
+      [1 0])
+    state]))
 
 (defformatter def-form
   ([{:keys [ast
@@ -118,7 +165,7 @@
   ([{:keys [ast index]}
     {:keys [seen-name?]
      :as state}]
-   ;; TODO: this needs more logic for the metadata
+   ; TODO: this needs more logic for the metadata
    (let [likely-function-name? (or (ast/is-symbol? ast)
                                    (ast/is-meta? ast))]
      [(cond
@@ -137,19 +184,30 @@
         (ast/is-particular-symbol? first-child #{'fn})))
 
   ([{:keys [ast index]}
-    {:keys [seen-args?]
+    {:keys [seen-args?
+            seen-multi-arity?]
      :as state}]
-   ;; TODO: this needs more logic for the metadata
-   ;; TODO: multi arity
-   (let [likely-args? (ast/is-vector? ast)]
+   ; TODO: this needs more logic for the metadata
+   (let [multi-arity-block? (and (ast/is-list? ast)
+                                 (or (some-> ast second ast/is-vector?)
+                                     ; TODO: check must be smart enough to look inside
+                                     (some-> ast second ast/is-meta?)))]
      [(cond
         (zero? index) [0 0]
+        seen-multi-arity? [2 1]
+        multi-arity-block? [1 1]
         seen-args? [1 1]
         :else [0 1])
       (cond-> state
         (and (pos? index)
              (not seen-args?)
-             likely-args?) (assoc :seen-args? true))])))
+             ; args?
+             ; TODO: also needs a metadata check, but it must be smart enough to look inside
+             (ast/is-vector? ast)) (assoc :seen-args? true)
+
+        (and (pos? index)
+             (not seen-args?)
+             multi-arity-block?) (assoc :seen-multi-arity? true))])))
 
 (defformatter let-like-bindings
   ([{:keys [ast
@@ -173,7 +231,9 @@
 (defn- letfn-binding?
   [{:keys [ast index
            first-sibling]}]
-  (and (ast/is-vector? ast)
+  (and (or (ast/is-vector? ast)
+           ; TODO: check must be smart enough to look inside
+           (ast/is-meta? ast))
        (ast/is-particular-symbol? first-sibling #{'letfn})
        (= index 1)))
 
@@ -186,13 +246,6 @@
       [0 0]
       [1 0])
     state]))
-
-(defn- block-form*
-  [num-args {:keys [index]}]
-  (cond
-    (zero? index) [0 0]
-    (<= index num-args) [0 1]
-    :else [1 1]))
 
 (defformatter letfn-binding-function
   ([{:keys [ast parent]}]
