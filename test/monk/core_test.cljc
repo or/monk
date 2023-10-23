@@ -473,6 +473,23 @@
     |        (foobar))
     |     'bar)"
 
+    ; var quote
+    "(foo #'arg1 #'arg2 #'arg3)"
+
+    "(foo arg1
+    |     #'foo
+    |     (do
+    |       (foobar))
+    |     #'bar)"
+
+    "#'(some list elements)"
+
+    "(foo arg1
+    |     arg2
+    |     #'(do
+    |         (foobar))
+    |     #'bar)"
+
     ; empty string
     ""
 
