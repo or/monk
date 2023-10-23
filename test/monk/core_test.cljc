@@ -101,7 +101,8 @@
     |  (some-stuff arg1 arg2)
     |  (more-stuff arg3))"
 
-    "(fn function-name [arg1 arg2 arg3]
+    "(fn function-name
+    |  [arg1 arg2 arg3]
     |  (some-stuff arg1 arg2)
     |  (more-stuff arg3))"
 

@@ -184,7 +184,8 @@
         (ast/is-particular-symbol? first-child #{'fn})))
 
   ([{:keys [ast index]}
-    {:keys [seen-args?
+    {:keys [seen-name?
+            seen-args?
             seen-multi-arity?]
      :as state}]
    ; TODO: this needs more logic for the metadata
@@ -196,9 +197,18 @@
         (zero? index) [0 0]
         seen-multi-arity? [2 1]
         multi-arity-block? [1 1]
+        seen-name? [1 1]
         seen-args? [1 1]
         :else [0 1])
       (cond-> state
+        (and (pos? index)
+             (not seen-name?)
+             (not seen-args?)
+             ; function name?
+             (or (ast/is-symbol? ast)
+               ; TODO: check must be smart enough to look inside
+                 (ast/is-metadata? ast))) (assoc :seen-name? true)
+
         (and (pos? index)
              (not seen-args?)
              ; args?
