@@ -315,8 +315,9 @@
   ([{:keys [ast]}]
    (ast/is-metadata? ast))
 
-  ([{:keys [index multiline?-per-child]} state]
-   (let [require-linebreaks? (some identity (drop-last multiline?-per-child))]
+  ([{:keys [index first-sibling]} state]
+   (let [require-linebreaks? (and (ast/is-metadata-entry? first-sibling)
+                                  (ast/is-map? (second first-sibling)))]
      [(cond
         (zero? index) [0 0]
         (not require-linebreaks?) [0 1]

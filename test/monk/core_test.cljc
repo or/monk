@@ -398,7 +398,8 @@
     "^:bar ^:foo ^String (do
     |                      (some-stuff))"
 
-    "^{:foo :bar} foobar"
+    "^{:foo :bar}
+    |foobar"
 
     "^{:foo :bar
     |  :tag String}
@@ -407,7 +408,8 @@
     "(foo-bar arg1
     |         ^String (do
     |                   (some-stuff))
-    |         ^{:foo :bar} arg3)"
+    |         ^{:foo :bar}
+    |         arg3)"
 
     ; deprecated metadata
     "#^:foo ^:bar ^String foobar"
@@ -415,7 +417,9 @@
     "#^:bar #^:foo ^String (do
     |                        (some-stuff))"
 
-    "#^{:foo :bar} ^{:another :value} foobar"
+    "#^{:foo :bar}
+    |^{:another :value}
+    |foobar"
 
     "^{:foo :bar
     |  :tag String}
@@ -424,7 +428,8 @@
     "(foo-bar arg1
     |         ^String (do
     |                   (some-stuff))
-    |         ^{:foo :bar} arg3)"
+    |         ^{:foo :bar}
+    |         arg3)"
 
     ; deref
     "(foo arg1 @arg2 arg3)"
