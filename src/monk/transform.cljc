@@ -256,11 +256,14 @@
                                                   (if (pos? newlines)
                                                     spaces
                                                     (+ column spaces))])
+
                                (and (= (count ast-rest) 1)
                                     (string? (first ast-rest))) [ast-rest (+ new-column (count (first ast-rest)))]
+
                                (and (zero? pre)
                                     (zero? post)
                                     (not (get #{:code :metadata} ast-first))) [ast-rest (+ new-column (count (first ast-rest)))]
+
                                :else (reduce (fn [[new-ast-rest current-column arg-columns] child]
                                                (let [[new-child
                                                       new-column] (concretize-whitespace* child new-base-indentation arg-columns current-column)]
