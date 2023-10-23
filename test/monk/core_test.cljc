@@ -554,6 +554,14 @@
 
     "##-Inf"
 
+    ; eval
+    "#=foobar"
+
+    "#=(foobar)"
+
+    "#=(do
+    |    (foobar))"
+
     ; empty string
     ""
 
