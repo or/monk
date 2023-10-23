@@ -547,6 +547,13 @@
     "#foobar (do
     |          (something))"
 
+    ; symbolic
+    "##NaN"
+
+    "##Inf"
+
+    "##-Inf"
+
     ; empty string
     ""
 

@@ -208,6 +208,7 @@
    :whitespace [0 0]
    :comment [0 0]
    :symbol [0 0]
+   :symbolic [2 0]
    :character [0 0]
    :string [0 0]
    :keyword [0 0]
