@@ -421,6 +421,15 @@
     "#:test{:foo :bar
     |       :foo2 :bar2}"
 
+    ; regex
+    "#\"[a-z]+\""
+
+    "(foo arg1
+    |     #\"[a-z]+\"
+    |     (do
+    |       (foobar))
+    |     arg3)"
+
     ;
     ))
 
