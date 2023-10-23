@@ -430,6 +430,15 @@
     |       (foobar))
     |     arg3)"
 
+    ; auto resolve
+    "::foobar"
+
+    "(foo arg1
+    |     ::foo
+    |     (do
+    |       (foobar))
+    |     ::bar)"
+
     ;
     ))
 
