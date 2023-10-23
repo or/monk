@@ -183,18 +183,7 @@
 
 (defn- traversible?
   [{:keys [ast]}]
-  (get #{:code
-         :list
-         :vector
-         :map
-         :set
-         :metadata
-         :metadata_entry
-         :deprecated_metadata_entry
-         :discard
-         :deref
-         :namespaced_map}
-       (first ast)))
+  (some-> ast second vector?))
 
 (defn transform*
   [context]
