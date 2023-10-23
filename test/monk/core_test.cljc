@@ -562,6 +562,18 @@
     "#=(do
     |    (foobar))"
 
+    ; reader conditionals
+    "#?(:clj Double/NaN
+    |   :cljs js/NaN
+    |   :default nil)"
+
+    ; reader conditionals splicing
+    "(foobar arg1
+    |        #?@(:clj Double/NaN
+    |            :cljs js/NaN
+    |            :default nil)
+    |        arg3)"
+
     ; empty string
     ""
 

@@ -330,3 +330,12 @@
   ([_context state]
    [[0 0]
     state]))
+
+(defformatter reader-conditional-form
+  ([{:keys [ast parent]}]
+   (and (ast/is-list? ast)
+        (ast/is-reader-conditional? (:ast parent))))
+
+  ([context state]
+   [(paired-element* 0 0 context)
+    state]))

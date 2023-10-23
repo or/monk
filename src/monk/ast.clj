@@ -57,6 +57,11 @@
   (-> ast first #{:metadata_entry
                   :deprecated_metadata_entry}))
 
+(defn is-reader-conditional?
+  [ast]
+  (-> ast first #{:conditional
+                  :conditional_splicing}))
+
 (defn is-namespaced-map?
   [ast]
   (-> ast first (= :namespaced_map)))
