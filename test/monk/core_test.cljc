@@ -409,6 +409,14 @@
     |                   (some-stuff))
     |         ^{:foo :bar} arg3)"
 
+    ; deref
+    "(foo arg1 @arg2 arg3)"
+
+    "(foo arg1
+    |     @(do
+    |        (do-something))
+    |     arg3)"
+
     ;
     ))
 

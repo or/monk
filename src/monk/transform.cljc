@@ -189,7 +189,8 @@
          :set
          :metadata
          :metadata_entry
-         :discard}
+         :discard
+         :deref}
        (first ast)))
 
 (defn transform*
