@@ -417,6 +417,10 @@
     |        (do-something))
     |     arg3)"
 
+    ; namespaced_map
+    "#:test{:foo :bar
+    |       :foo2 :bar2}"
+
     ;
     ))
 

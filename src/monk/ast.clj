@@ -56,6 +56,10 @@
   [ast]
   (-> ast first (= :metadata_entry)))
 
+(defn is-namespaced-map?
+  [ast]
+  (-> ast first (= :namespaced_map)))
+
 (defn is-whitespace?
   [ast]
   (-> ast first (= :whitespace)))

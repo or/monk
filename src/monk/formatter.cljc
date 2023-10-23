@@ -323,3 +323,11 @@
         (ast/is-metadata-entry? ast) [0 1]
         :else [1 0])
       state])))
+
+(defformatter namespaced-map-form
+  ([{:keys [ast]}]
+   (ast/is-namespaced-map? ast))
+
+  ([_context state]
+   [[0 0]
+    state]))

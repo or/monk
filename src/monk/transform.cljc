@@ -22,6 +22,7 @@
    formatter/block-form
    formatter/function-form
    formatter/top-level-form
+   formatter/namespaced-map-form
    formatter/default])
 
 (defn pick-formatter
@@ -190,7 +191,8 @@
          :metadata
          :metadata_entry
          :discard
-         :deref}
+         :deref
+         :namespaced_map}
        (first ast)))
 
 (defn transform*
