@@ -190,6 +190,7 @@
          :set
          :metadata
          :metadata_entry
+         :deprecated_metadata_entry
          :discard
          :deref
          :namespaced_map}
@@ -287,14 +288,10 @@
   [ast]
   (first (concretize-whitespace* ast 0 [] 0)))
 
-(defn- metadata-entry-sort-key
-  [[tag s]]
-  [tag s])
-
 (defn- combine-metadata-entries-into-map
   [entries]
   (let [new-entries (first (reduce
-                            (fn [[result seen-keys] [_ entry-data]]
+                            (fn [[result seen-keys] [entry-kind entry-data]]
                               (let [new-entries (cond
                                                   (ast/is-map? entry-data) (map vec (partition 2 (rest entry-data)))
                                                   (ast/is-symbol? entry-data) [[[:keyword ":tag"] entry-data]]
@@ -309,28 +306,34 @@
                                     (get seen-keys new-key) (recur remaining-entries result seen-keys)
 
                                     :else (recur remaining-entries
-                                                 (conj result new-entry)
+                                                 (conj result [entry-kind new-entry])
                                                  (conj seen-keys new-key))))))
 
                             [[] #{}]
                             entries))
-        sorted-entries (sort-by (comp metadata-entry-sort-key first) new-entries)]
-    (into [:map] (apply concat sorted-entries))))
+        sorted-entries (sort new-entries)
+        {deprecated-entries :deprecated_metadata_entry
+         non-deprecated-entries :metadata_entry} (group-by first sorted-entries)]
+    (cond-> []
+      (seq deprecated-entries) (conj [:deprecated_metadata_entry
+                                      (into [:map] (apply concat (map second deprecated-entries)))])
+
+      (seq non-deprecated-entries) (conj [:metadata_entry
+                                          (into [:map] (apply concat (map second non-deprecated-entries)))]))))
 
 (defn- dedupe-inline-metadata-entries
   [entries]
-  (sort-by (comp metadata-entry-sort-key second)
-           (first (reduce
-                   (fn [[result seen-keys] [_ key
-                                            :as entry]]
-                     (let [effective-key (if (ast/is-symbol? key)
-                                           "symbol"
-                                           key)]
-                       (if (get seen-keys effective-key)
-                         [result seen-keys]
-                         [(conj result entry) (conj seen-keys effective-key)])))
-                   [[] #{}]
-                   entries))))
+  (sort (first (reduce
+                (fn [[result seen-keys] [_ key
+                                         :as entry]]
+                  (let [effective-key (if (ast/is-symbol? key)
+                                        "symbol"
+                                        key)]
+                    (if (get seen-keys effective-key)
+                      [result seen-keys]
+                      [(conj result entry) (conj seen-keys effective-key)])))
+                [[] #{}]
+                entries))))
 
 (defn unify-metadata
   [ast]
@@ -341,9 +344,9 @@
        (let [entries (subvec data 1 (dec (count data)))
              map-entries? (some (comp ast/is-map? second) entries)]
          (if map-entries?
-           [(first data)
-            [:metadata_entry (combine-metadata-entries-into-map entries)]
-            (last data)]
+           (vec (concat [(first data)]
+                        (combine-metadata-entries-into-map entries)
+                        [(last data)]))
 
            (vec (concat [(first data)]
                         (dedupe-inline-metadata-entries entries)

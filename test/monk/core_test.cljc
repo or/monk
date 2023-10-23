@@ -409,6 +409,23 @@
     |                   (some-stuff))
     |         ^{:foo :bar} arg3)"
 
+    ; deprecated metadata
+    "#^:foo ^:bar ^String foobar"
+
+    "#^:bar #^:foo ^String (do
+    |                        (some-stuff))"
+
+    "#^{:foo :bar} ^{:another :value} foobar"
+
+    "^{:foo :bar
+    |  :tag String}
+    |foobar"
+
+    "(foo-bar arg1
+    |         ^String (do
+    |                   (some-stuff))
+    |         ^{:foo :bar} arg3)"
+
     ; deref
     "(foo arg1 @arg2 arg3)"
 
@@ -439,6 +456,9 @@
     |       (foobar))
     |     ::bar)"
 
+    ; empty string
+    ""
+
     ;
     ))
 
@@ -462,6 +482,25 @@
 
     ; dedupe inline metadata entries
     "^String ^:private ^:private ^Integer foobar"
+    "^:private ^String foobar"
+
+    ; metadata unification with deprecated metadata
+    "^:private ^{:foo :bar} ^String #^:foo #^{:new :value} foobar"
+    "#^{:new :value}
+    |^{:foo :bar
+    |  :private true
+    |  :tag String}
+    |foobar"
+
+    ; first occurrence of a key wins with deprecated metadata
+    "^:private ^{:private :bar} ^String ^Integer #^:deprecated foobar"
+    "#^{:deprecated true}
+    |^{:private true
+    |  :tag String}
+    |foobar"
+
+    ; dedupe inline metadata entries with deprecated metadata
+    "^String ^:private ^:private ^Integer #^Long foobar"
     "^:private ^String foobar"
 
     ;

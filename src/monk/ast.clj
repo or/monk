@@ -54,7 +54,8 @@
 
 (defn is-metadata-entry?
   [ast]
-  (-> ast first (= :metadata_entry)))
+  (-> ast first #{:metadata_entry
+                  :deprecated_metadata_entry}))
 
 (defn is-namespaced-map?
   [ast]

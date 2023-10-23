@@ -315,12 +315,11 @@
   ([{:keys [ast]}]
    (ast/is-metadata? ast))
 
-  ([{:keys [ast index multiline?-per-child]} state]
+  ([{:keys [index multiline?-per-child]} state]
    (let [require-linebreaks? (some identity (drop-last multiline?-per-child))]
      [(cond
         (zero? index) [0 0]
         (not require-linebreaks?) [0 1]
-        (ast/is-metadata-entry? ast) [0 1]
         :else [1 0])
       state])))
 
