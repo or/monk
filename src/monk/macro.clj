@@ -15,7 +15,8 @@
   (let [[detector-args & detector-body] detector
         [formatter-args & formatter-body] formatter]
     `(def ~name
-       {:detector (fn ~'detector
+       {:name ~(str name)
+        :detector (fn ~'detector
                     ~detector-args
                     ~@detector-body)
         :formatter (fn ~'formatter

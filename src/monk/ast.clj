@@ -2,16 +2,34 @@
   (:require
    [clojure.string :as str]
    [clojure.walk :as walk]
+   [clojure.zip :as z]
    [parcera.core :as parcera]))
+
+(defn zipper
+  [ast]
+  (z/zipper vector?
+            rest
+            (fn [n c]
+              (with-meta (into [(first n)] c) (meta n)))
+            ast))
 
 (defn parse
   [^String data]
-  (walk/postwalk
-   (fn [data]
-     (if (sequential? data)
-       (vec data)
-       data))
-   (parcera/ast data)))
+  (->> data
+       parcera/ast
+       (walk/postwalk
+        (fn [data]
+          (if (sequential? data)
+            (vec data)
+            data)))))
+
+(defn unpack
+  [ast]
+  (if (or (nil? ast)
+          (and (vector? ast)
+               (some-> ast first keyword?)))
+    ast
+    (z/node ast)))
 
 (defn whitespace-node
   [number-of-newlines number-of-spaces]
@@ -20,63 +38,66 @@
 
 (defn is-particular-keyword?
   [ast keywords]
-  (and (-> ast first (= :keyword))
-       (-> ast second (subs 1) keyword keywords)))
+  (let [ast (unpack ast)]
+    (and (-> ast first (= :keyword))
+         (-> ast second (subs 1) keyword keywords))))
 
 (defn is-particular-symbol?
   [ast symbols]
-  (and (-> ast first (= :symbol))
-       (-> ast second symbol symbols)))
+  (let [ast (unpack ast)]
+    (and (-> ast first (= :symbol))
+         (-> ast second symbol symbols))))
 
 (defn is-top-level?
   [ast]
-  (-> ast first (= :code)))
+  (-> ast unpack first (= :code)))
 
 (defn is-symbol?
   [ast]
-  (-> ast first (= :symbol)))
+  (-> ast unpack first (= :symbol)))
 
 (defn is-list?
   [ast]
-  (-> ast first (= :list)))
+  (-> ast unpack first (= :list)))
 
 (defn is-map?
   [ast]
-  (-> ast first (= :map)))
+  (-> ast unpack first (= :map)))
 
 (defn is-vector?
   [ast]
-  (-> ast first (= :vector)))
+  (-> ast unpack first (= :vector)))
 
 (defn is-metadata?
   [ast]
-  (-> ast first (= :metadata)))
+  (-> ast unpack first (= :metadata)))
 
 (defn is-metadata-entry?
   [ast]
-  (-> ast first #{:metadata_entry
-                  :deprecated_metadata_entry}))
+  (-> ast unpack first #{:metadata_entry
+                         :deprecated_metadata_entry}))
 
 (defn is-reader-conditional?
   [ast]
-  (-> ast first #{:conditional
-                  :conditional_splicing}))
+  (-> ast unpack first #{:conditional
+                         :conditional_splicing}))
 
 (defn is-namespaced-map?
   [ast]
-  (-> ast first (= :namespaced_map)))
+  (-> ast unpack first (= :namespaced_map)))
 
 (defn is-whitespace?
   [ast]
-  (-> ast first (= :whitespace)))
+  (-> ast unpack first (= :whitespace)))
 
 (defn is-comment?
   [ast]
-  (-> ast first (= :comment)))
+  (-> ast unpack first (= :comment)))
 
 (defn multiline?
   [ast]
-  (->> (tree-seq sequential? seq ast)
+  ; TODO: zipper
+  (->> (tree-seq sequential? seq (unpack ast))
        (filter (fn [node]
                  (and (vector? node)
                       (-> node first (= :whitespace))
@@ -85,7 +106,8 @@
 
 (defn num-chunks
   [ast]
-  (->> (tree-seq sequential? seq ast)
+  ; TODO: zipper
+  (->> (tree-seq sequential? seq (unpack ast))
        (filter (fn [node]
                  (and (vector? node)
                       (-> node first (= :whitespace)))))
@@ -93,8 +115,13 @@
        count
        inc))
 
+(defn is-first-threading-function?
+  [ast]
+  (let [ast (unpack ast)]
+    (and (-> ast first (= :symbol))
+         (-> ast second (str/ends-with? "->")))))
+
 (defn thread-first-form?
   [ast first-child]
-  (and (-> ast first (= :list))
-       (-> first-child first (= :symbol))
-       (-> first-child second (str/ends-with? "->"))))
+  (and (-> ast unpack first (= :list))
+       (is-first-threading-function? (unpack first-child))))

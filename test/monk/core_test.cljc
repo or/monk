@@ -336,7 +336,7 @@
     |               (arg2 1)
     |               (arg3 2))"
 
-    ; comments
+    ;; ; comments
     "(do
     |  ; a comment for the next line
     |  (some-stuff)
@@ -579,6 +579,11 @@
     |            :cljs js/NaN
     |            :default nil)
     |        arg3)"
+
+    ; simple
+    "(foobar)"
+
+    "()"
 
     ; empty string
     ""

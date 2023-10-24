@@ -1,5 +1,6 @@
 (ns monk.formatter
   (:require
+   [clojure.zip :as z]
    [monk.ast :as ast]
    [monk.macro :refer [defformatter]]))
 
@@ -137,9 +138,9 @@
            (not seen-args?)
            ; multi arity block?
            (ast/is-list? ast)
-           (or (some-> ast second ast/is-vector?)
+           (or (some-> ast z/node second ast/is-vector?)
                ; TODO: check must be smart enough to look inside
-               (some-> ast second ast/is-metadata?))) (assoc :seen-multi-arity? true))]))
+               (some-> ast z/node second ast/is-metadata?))) (assoc :seen-multi-arity? true))]))
 
 (defformatter defn-multi-arity-function
   ([{:keys [ast parent
@@ -190,9 +191,9 @@
      :as state}]
    ; TODO: this needs more logic for the metadata
    (let [multi-arity-block? (and (ast/is-list? ast)
-                                 (or (some-> ast second ast/is-vector?)
+                                 (or (some-> ast z/node second ast/is-vector?)
                                      ; TODO: check must be smart enough to look inside
-                                     (some-> ast second ast/is-metadata?)))]
+                                     (some-> ast z/node second ast/is-metadata?)))]
      [(cond
         (zero? index) [0 0]
         seen-multi-arity? [2 1]
@@ -275,7 +276,7 @@
   ([{:keys [first-sibling]
      :as context}
     state]
-   (let [num-args (-> first-sibling second symbol block-tokens)]
+   (let [num-args (-> first-sibling z/node second symbol block-tokens)]
      [(block-form* num-args context)
       state])))
 
@@ -327,7 +328,7 @@
 
   ([{:keys [index first-sibling]} state]
    (let [require-linebreaks? (and (ast/is-metadata-entry? first-sibling)
-                                  (ast/is-map? (second first-sibling)))]
+                                  (ast/is-map? (second (z/node first-sibling))))]
      [(cond
         (zero? index) [0 0]
         (not require-linebreaks?) [0 1]
