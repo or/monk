@@ -64,9 +64,15 @@
     (inc ast)
     0))
 
+(defn- effective-form?
+  [ast]
+  (-> ast
+      form-kind
+      (= :effective)))
+
 (declare transform*)
 
-(defn- transform-children
+(defn- transform-children*
   [{:keys [parent
            ast]
     :as context}]
@@ -76,52 +82,54 @@
         first-child (first (->> children
                                 (iterate z/right)
                                 (take-while some?)
-                                (filter (fn [child]
-                                          (-> child
-                                              form-kind
-                                              (= :effective))))))
+                                (filter effective-form?)))
         context (assoc context
                        :first-child first-child
                        :thread-first-form? (ast/thread-first-form? ast first-child))
         [new-ast
-         transformed-children] (if (z/node children)
-                                 (loop [child-ast children
-                                        current-index 0
-                                        transformed-children []
-                                        last-sibling nil]
-                                   (let [kind (form-kind child-ast)
-                                         delimiter? (= kind :delimiter)
-                                         effective? (= kind :effective)
-                                         next-index (if effective?
-                                                      (let [new-index (inc-or-zero current-index)]
-                                                        (if (and parent-thread-first-form?
-                                                                 (< 1 index-in-parent)
-                                                                 (= new-index 1))
-                                                          (inc new-index)
-                                                          new-index))
-                                                      current-index)
-                                         child-context {:ast child-ast
-                                                        :parent context
-                                                        :index current-index
-                                                        :first-sibling first-child
-                                                        :last-sibling last-sibling
-                                                        :delimiter? delimiter?
-                                                        :effective? effective?}
-                                         transformed-child (:ast (transform* child-context))
-                                         next-child (z/right transformed-child)
-                                         new-transformed-children (conj transformed-children (assoc child-context :transformed-ast (z/node transformed-child)))]
-                                     (if next-child
-                                       (recur next-child
-                                              next-index
-                                              new-transformed-children
-                                              (if effective?
-                                                transformed-child
-                                                last-sibling))
-                                       [transformed-child new-transformed-children])))
-                                 [ast []])]
+         transformed-children] (loop [child-ast children
+                                      current-index 0
+                                      transformed-children []
+                                      last-sibling nil]
+                                 (let [kind (form-kind child-ast)
+                                       delimiter? (= kind :delimiter)
+                                       effective? (= kind :effective)
+                                       next-index (if effective?
+                                                    (let [new-index (inc-or-zero current-index)]
+                                                      (if (and parent-thread-first-form?
+                                                               (< 1 index-in-parent)
+                                                               (= new-index 1))
+                                                        (inc new-index)
+                                                        new-index))
+                                                    current-index)
+                                       child-context {:ast child-ast
+                                                      :parent context
+                                                      :index current-index
+                                                      :first-sibling first-child
+                                                      :last-sibling last-sibling
+                                                      :delimiter? delimiter?
+                                                      :effective? effective?}
+                                       transformed-child (:ast (transform* child-context))
+                                       next-child (z/right transformed-child)
+                                       new-transformed-children (conj transformed-children (assoc child-context :transformed-ast (z/node transformed-child)))]
+                                   (if next-child
+                                     (recur next-child
+                                            next-index
+                                            new-transformed-children
+                                            (if effective?
+                                              transformed-child
+                                              last-sibling))
+                                     [transformed-child new-transformed-children])))]
     (assoc context
            :ast (z/up new-ast)
            :transformed-children transformed-children)))
+
+(defn- transform-children
+  [{:keys [ast]
+    :as context}]
+  (if (-> ast z/down z/node)
+    (transform-children* context)
+    (assoc context :transformed-children [])))
 
 (defn- process-children
   [{:keys [ast transformed-children]
