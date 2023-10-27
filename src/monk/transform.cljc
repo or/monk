@@ -78,96 +78,99 @@
     :as context}]
   (let [index-in-parent (:index context)
         parent-thread-first-form? (:thread-first-form? parent)
-        children (z/down ast)
-        first-child (first (->> children
+        first-child (first (->> (z/down ast)
                                 (iterate z/right)
                                 (take-while some?)
                                 (filter effective-form?)))
         context (assoc context
                        :first-child first-child
                        :thread-first-form? (ast/thread-first-form? ast first-child))
-        [new-ast
-         transformed-children] (loop [child-ast children
-                                      current-index 0
-                                      transformed-children []
-                                      last-sibling nil]
-                                 (let [kind (form-kind child-ast)
-                                       delimiter? (= kind :delimiter)
-                                       effective? (= kind :effective)
-                                       next-index (if effective?
-                                                    (let [new-index (inc-or-zero current-index)]
-                                                      (if (and parent-thread-first-form?
-                                                               (< 1 index-in-parent)
-                                                               (= new-index 1))
-                                                        (inc new-index)
-                                                        new-index))
-                                                    current-index)
-                                       child-context {:ast child-ast
-                                                      :parent context
-                                                      :index current-index
-                                                      :first-sibling first-child
-                                                      :last-sibling last-sibling
-                                                      :delimiter? delimiter?
-                                                      :effective? effective?}
-                                       transformed-child (:ast (transform* child-context))
-                                       next-child (z/right transformed-child)
-                                       new-transformed-children (conj transformed-children (assoc child-context :transformed-ast (z/node transformed-child)))]
-                                   (if next-child
-                                     (recur next-child
-                                            next-index
-                                            new-transformed-children
-                                            (if effective?
-                                              transformed-child
-                                              last-sibling))
-                                     [transformed-child new-transformed-children])))]
-    (assoc context
-           :ast (z/up new-ast)
-           :transformed-children transformed-children)))
+        new-ast (loop [child-ast (z/down ast)
+                       current-index 0
+                       last-sibling nil]
+                  (let [kind (form-kind child-ast)
+                        delimiter? (= kind :delimiter)
+                        effective? (= kind :effective)
+                        next-index (if effective?
+                                     (let [new-index (inc-or-zero current-index)]
+                                       (if (and parent-thread-first-form?
+                                                (< 1 index-in-parent)
+                                                (= new-index 1))
+                                         (inc new-index)
+                                         new-index))
+                                     current-index)
+                        child-context {:ast child-ast
+                                       :parent context
+                                       :index current-index
+                                       :first-sibling first-child
+                                       :last-sibling last-sibling
+                                       :delimiter? delimiter?
+                                       :effective? effective?}
+                        transformed-child (:ast (transform* child-context))
+                        transformed-child (z/replace transformed-child (with-meta (z/node transformed-child) child-context))
+                        next-child (z/right transformed-child)]
+                    (if next-child
+                      (recur next-child
+                             next-index
+                             (if effective?
+                               transformed-child
+                               last-sibling))
+                      (z/up transformed-child))))]
+    (assoc context :ast new-ast)))
 
 (defn- transform-children
   [{:keys [ast]
     :as context}]
-  (if (-> ast z/down z/node)
-    (transform-children* context)
-    (assoc context :transformed-children [])))
+  (cond-> context
+    (-> ast z/down z/node) transform-children*))
 
-(defn- process-children
-  [{:keys [ast transformed-children]
+(defn- insert-spaces-left
+  [ast newlines spaces]
+  (z/insert-left ast (ast/whitespace-node newlines spaces)))
+
+(defn- process-children*
+  [{:keys [ast]
     :as context}]
   (let [formatter (pick-formatter context)
-        tag (first (z/node ast))
-        multiline?-per-child (map (comp ast/multiline? :transformed-ast) transformed-children)
-        num-chunks-per-child (map (comp ast/num-chunks :transformed-ast) transformed-children)
-        comment-children? (some identity (map (comp ast/is-comment? :transformed-ast) transformed-children))
+        children (->> (z/down ast)
+                      (iterate z/right)
+                      (take-while some?))
+        multiline?-per-child (map ast/multiline? children)
+        num-chunks-per-child (map ast/num-chunks children)
+        comment-children? (some identity (map ast/is-comment? children))
         require-linebreaks? (or comment-children?
                                 (some identity multiline?-per-child)
-                                (< (+ (count transformed-children) 2)
+                                (< (+ (count children) 2)
                                    (apply + num-chunks-per-child)))
         extra-context {:require-linebreaks? require-linebreaks?
                        :comment-children? comment-children?
                        :multiline?-per-child multiline?-per-child
                        :num-chunks-per-child num-chunks-per-child}
-        format-child (fn [[result state]
-                          {:keys [transformed-ast delimiter?]
-                           :as child-context}]
-                       (if delimiter?
-                         [(conj result transformed-ast)
-                          state]
-                         (let [[[newlines spaces]
-                                new-state] (formatter (merge child-context extra-context) state)]
-                           [(-> result
-                                (cond->
-                                  (or (pos? newlines)
-                                      (keyword? spaces)
-                                      (pos? spaces)) (conj (ast/whitespace-node newlines spaces)))
-                                (conj transformed-ast))
-                            new-state])))
-        new-children (->> transformed-children
-                          (reduce format-child [[] {}])
-                          first)]
-    (-> context
-        (dissoc :transformed-children)
-        (assoc :ast (z/replace ast (into [tag] new-children))))))
+        new-ast (loop [child-ast (z/down ast)
+                       state {}]
+                  (let [child-context (meta (z/node child-ast))
+                        [new-child-ast
+                         new-state] (if (or (not child-context)
+                                            (:delimiter? child-context))
+                                      [child-ast state]
+                                      (let [[[newlines spaces]
+                                             new-state] (formatter (merge child-context extra-context) state)]
+                                        [(cond-> child-ast
+                                           (or (pos? newlines)
+                                               (keyword? spaces)
+                                               (pos? spaces)) (insert-spaces-left newlines spaces))
+                                         new-state]))
+                        next-child (z/right new-child-ast)]
+                    (if next-child
+                      (recur next-child new-state)
+                      (z/up new-child-ast))))]
+    (assoc context :ast new-ast)))
+
+(defn- process-children
+  [{:keys [ast]
+    :as context}]
+  (cond-> context
+    (-> ast z/down z/node) process-children*))
 
 (defn- add-comments
   [children comments initial-whitespace-node]
