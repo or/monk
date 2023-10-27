@@ -131,7 +131,7 @@
                       (take-while some?))
         multiline?-per-child (map ast/multiline? children)
         num-chunks-per-child (map ast/num-chunks children)
-        comment-children? (some identity (map ast/is-comment? children))
+        comment-children? (some ast/is-comment? children)
         require-linebreaks? (or comment-children?
                                 (some identity multiline?-per-child)
                                 (< (+ (count children) 2)
