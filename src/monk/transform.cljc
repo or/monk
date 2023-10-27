@@ -72,7 +72,7 @@
 
 (declare transform*)
 
-(defn- transform-children*
+(defn- transform-children
   [{:keys [parent
            ast]
     :as context}]
@@ -118,17 +118,11 @@
                       (z/up transformed-child))))]
     (assoc context :ast new-ast)))
 
-(defn- transform-children
-  [{:keys [ast]
-    :as context}]
-  (cond-> context
-    (-> ast z/down z/node) transform-children*))
-
 (defn- insert-spaces-left
   [ast newlines spaces]
   (z/insert-left ast (ast/whitespace-node newlines spaces)))
 
-(defn- process-children*
+(defn- process-children
   [{:keys [ast]
     :as context}]
   (let [formatter (pick-formatter context)
@@ -165,12 +159,6 @@
                       (recur next-child new-state)
                       (z/up new-child-ast))))]
     (assoc context :ast new-ast)))
-
-(defn- process-children
-  [{:keys [ast]
-    :as context}]
-  (cond-> context
-    (-> ast z/down z/node) process-children*))
 
 (defn- add-comments
   [children comments initial-whitespace-node]
@@ -211,7 +199,8 @@
 
 (defn- traversible?
   [{:keys [ast]}]
-  (some-> ast z/node second vector?))
+  (and (some-> ast z/node second vector?)
+       (-> ast z/down z/node)))
 
 (defn transform*
   [context]
