@@ -227,18 +227,90 @@
                               new-child)))))]
     (assoc context :ast new-ast)))
 
+(defn- combine-metadata-entries-into-map
+  [entries]
+  (let [new-entries (first (reduce
+                            (fn [[result seen-keys] [entry-kind entry-data]]
+                              (let [new-entries (cond
+                                                  (ast/is-map? entry-data) (map vec (partition 2 (remove
+                                                                                                  #(or (ast/is-whitespace? %)
+                                                                                                       (ast/is-comment? %))
+                                                                                                  (rest entry-data))))
+                                                  (ast/is-symbol? entry-data) [[[:keyword ":tag"] entry-data]]
+                                                  :else [[entry-data [:symbol "true"]]])]
+                                (loop [[[new-key
+                                         :as new-entry] & remaining-entries] new-entries
+                                       result result
+                                       seen-keys seen-keys]
+                                  (cond
+                                    (nil? new-key) [result seen-keys]
+
+                                    (get seen-keys new-key) (recur remaining-entries result seen-keys)
+
+                                    :else (recur remaining-entries
+                                                 (conj result [entry-kind new-entry])
+                                                 (conj seen-keys new-key))))))
+
+                            [[] #{}]
+                            entries))
+        sorted-entries (sort new-entries)
+        {deprecated-entries :deprecated_metadata_entry
+         non-deprecated-entries :metadata_entry} (group-by first sorted-entries)]
+    (cond-> []
+      (seq deprecated-entries) (conj [:deprecated_metadata_entry
+                                      (into [:map] (apply concat (map second deprecated-entries)))])
+
+      (seq non-deprecated-entries) (conj [:metadata_entry
+                                          (into [:map] (apply concat (map second non-deprecated-entries)))]))))
+
+(defn- dedupe-inline-metadata-entries
+  [entries]
+  (sort (first (reduce
+                (fn [[result seen-keys] [_ key
+                                         :as entry]]
+                  (let [effective-key (if (ast/is-symbol? key)
+                                        "symbol"
+                                        key)]
+                    (if (get seen-keys effective-key)
+                      [result seen-keys]
+                      [(conj result entry) (conj seen-keys effective-key)])))
+                [[] #{}]
+                entries))))
+
+(defn unify-metadata
+  [{:keys [ast]
+    :as context}]
+  (let [node (z/node ast)
+        entries (into []
+                      (remove #(or (ast/is-whitespace? %)
+                                   (ast/is-comment? %)))
+                      (subvec node 1 (dec (count node))))
+        map-entries? (some (comp ast/is-map? second) entries)
+        new-node (if map-entries?
+                   (vec (concat [(first node)]
+                                (combine-metadata-entries-into-map entries)
+                                [(last node)]))
+
+                   (vec (concat [(first node)]
+                                (dedupe-inline-metadata-entries entries)
+                                [(last node)])))]
+    (assoc context :ast (z/replace ast new-node))))
+
 (defn- traversible?
-  [{:keys [ast]}]
+  [ast]
   (and (some-> ast z/node second vector?)
        (-> ast z/down z/node)))
 
 (defn transform*
-  [context]
+  [{:keys [ast]
+    :as context}]
   (cond-> context
-    (traversible? context) (->
-                             transform-children
-                             process-children
-                             process-comments)))
+    (ast/is-metadata? ast) unify-metadata
+
+    (traversible? ast) (->
+                         transform-children
+                         process-children
+                         process-comments)))
 
 (defn transform
   [ast]
@@ -332,76 +404,3 @@
 (defn concretize-whitespace
   [ast]
   (first (concretize-whitespace* ast 0 [] 0)))
-
-(defn- combine-metadata-entries-into-map
-  [entries]
-  (let [new-entries (first (reduce
-                            (fn [[result seen-keys] [entry-kind entry-data]]
-                              (let [new-entries (cond
-                                                  (ast/is-map? entry-data) (map vec (partition 2 (remove
-                                                                                                  #(or (ast/is-whitespace? %)
-                                                                                                       (ast/is-comment? %))
-                                                                                                  (rest entry-data))))
-                                                  (ast/is-symbol? entry-data) [[[:keyword ":tag"] entry-data]]
-                                                  :else [[entry-data [:symbol "true"]]])]
-                                (loop [[[new-key
-                                         :as new-entry] & remaining-entries] new-entries
-                                       result result
-                                       seen-keys seen-keys]
-                                  (cond
-                                    (nil? new-key) [result seen-keys]
-
-                                    (get seen-keys new-key) (recur remaining-entries result seen-keys)
-
-                                    :else (recur remaining-entries
-                                                 (conj result [entry-kind new-entry])
-                                                 (conj seen-keys new-key))))))
-
-                            [[] #{}]
-                            entries))
-        sorted-entries (sort new-entries)
-        {deprecated-entries :deprecated_metadata_entry
-         non-deprecated-entries :metadata_entry} (group-by first sorted-entries)]
-    (cond-> []
-      (seq deprecated-entries) (conj [:deprecated_metadata_entry
-                                      (into [:map] (apply concat (map second deprecated-entries)))])
-
-      (seq non-deprecated-entries) (conj [:metadata_entry
-                                          (into [:map] (apply concat (map second non-deprecated-entries)))]))))
-
-(defn- dedupe-inline-metadata-entries
-  [entries]
-  (sort (first (reduce
-                (fn [[result seen-keys] [_ key
-                                         :as entry]]
-                  (let [effective-key (if (ast/is-symbol? key)
-                                        "symbol"
-                                        key)]
-                    (if (get seen-keys effective-key)
-                      [result seen-keys]
-                      [(conj result entry) (conj seen-keys effective-key)])))
-                [[] #{}]
-                entries))))
-
-(defn unify-metadata
-  [ast]
-  (walk/postwalk
-   (fn [data]
-     (if (and (vector? data)
-              (ast/is-metadata? data))
-       (let [entries (into []
-                           (remove #(or (ast/is-whitespace? %)
-                                        (ast/is-comment? %)))
-                           (subvec data 1 (dec (count data))))
-             map-entries? (some (comp ast/is-map? second) entries)]
-         (if map-entries?
-           (vec (concat [(first data)]
-                        (combine-metadata-entries-into-map entries)
-                        [(last data)]))
-
-           (vec (concat [(first data)]
-                        (dedupe-inline-metadata-entries entries)
-                        [(last data)]))))
-
-       data))
-   ast))

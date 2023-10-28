@@ -637,5 +637,20 @@
     "^String ^:private ^:private ^Integer #^Long foobar"
     "^:private ^String foobar"
 
+    ; comments between metadata is just stripped
+    "^String ; a comment
+    |^:private foobar"
+    "^:private ^String foobar"
+
+    ; comments inside metadata map is also stripped
+    ; TODO: probably worth keeping, but it's an edge case and it's tricky
+    "^{:private true
+    |  ; another key
+    |  :tag String}
+    |foobar"
+    "^{:private true
+    |  :tag String}
+    |foobar"
+
     ;
     ))

@@ -8,7 +8,6 @@
 (defn format-string
   [data & {:as _options}]
   (-> (ast/parse data)
-      transform/unify-metadata
       ast/zipper
       transform/transform
       transform/concretize-whitespace
