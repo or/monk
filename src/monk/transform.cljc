@@ -120,7 +120,17 @@
 
 (defn- insert-spaces-left
   [ast newlines spaces]
-  (z/insert-left ast (ast/whitespace-node newlines spaces)))
+  (let [left-ast (z/left ast)]
+    (if (ast/is-whitespace? left-ast)
+      (z/replace left-ast (ast/whitespace-node newlines spaces))
+      (z/insert-left ast (ast/whitespace-node newlines spaces)))))
+
+(defn- insert-spaces-right
+  [ast newlines spaces]
+  (let [right-ast (z/right ast)]
+    (if (ast/is-whitespace? right-ast)
+      (z/replace right-ast (ast/whitespace-node newlines spaces))
+      (z/insert-right ast (ast/whitespace-node newlines spaces)))))
 
 (defn- process-children
   [{:keys [ast]
@@ -160,42 +170,67 @@
                       (z/up new-child-ast))))]
     (assoc context :ast new-ast)))
 
-(defn- add-comments
-  [children comments initial-whitespace-node]
-  (let [whitespace-node (ast/whitespace-node 1 :previous-arg)]
-    (-> children
+(defn- align-comments
+  [first-comment initial-whitespace-node]
+  ; TODO: read metadata from initial-whitespace-node, use that
+  (loop [ast first-comment]
+    (let [[new-ast
+           done?] (cond
+                    (and (= ast first-comment)
+                         initial-whitespace-node) [(z/insert-left ast initial-whitespace-node) false]
+
+                    (= ast first-comment) [ast false]
+
+                    (ast/is-whitespace? ast) [ast false]
+
+                    (ast/is-comment? ast) [(insert-spaces-left ast 1 :previous-arg) false]
+
+                    :else [(insert-spaces-left ast 1 :previous-arg) true])
+          next-ast (z/right new-ast)]
+      (if (and (not done?)
+               next-ast)
+        (recur next-ast)
+        new-ast))))
+
+(defn- align-trailing-comments
+  [first-comment]
+  (let [is-top-level-child? (some-> first-comment z/up ast/is-top-level?)]
+    (-> first-comment
         (cond->
-          initial-whitespace-node (conj initial-whitespace-node))
-        (into (interpose whitespace-node comments))
+          is-top-level-child? (insert-spaces-left 2 0))
+        (align-comments nil)
         (cond->
-          initial-whitespace-node (conj (ast/whitespace-node 1 :previous-arg))))))
+          (not is-top-level-child?) (insert-spaces-right 1 0)))))
 
 (defn- process-comments
   [{:keys [ast]
     :as context}]
-  (let [[tag & children] (z/node ast)
-        process-comment (fn [[result comments] child]
-                          (let [[tag & _] child]
-                            (if (= tag :comment)
-                              [result
-                               (conj comments child)]
-                              (if (empty? comments)
-                                [(conj result child) comments]
-                                (if (ast/is-whitespace? child)
-                                  [(add-comments result comments child) []]
-                                  [(-> result
-                                       (add-comments comments nil)
-                                       (conj (ast/whitespace-node 1 0))
-                                       (conj child)) []])))))
-        [processed-children comments] (reduce process-comment [[] []] children)
-        processed-children (cond-> processed-children
-                             (seq comments) (->
-                                              (cond->
-                                                (ast/is-top-level? ast) (conj (ast/whitespace-node 2 0)))
-                                              (add-comments comments nil)
-                                              (cond->
-                                                (not (ast/is-top-level? ast)) (conj (ast/whitespace-node 1 0)))))]
-    (assoc context :ast (z/replace ast (into [tag] processed-children)))))
+  (let [new-ast (loop [child (z/down ast)
+                       first-comment nil]
+                  (let [[new-child
+                         new-first-comment] (cond
+                                              (and (not first-comment)
+                                                   (ast/is-comment? child)) [child child]
+
+                                              (and first-comment
+                                                   (ast/is-whitespace? child)
+                                                   (some-> child
+                                                           z/right
+                                                           ast/is-comment?
+                                                           not)) [(align-comments first-comment (z/node child)) nil]
+
+                                              (and first-comment
+                                                   (not (ast/is-comment? child))
+                                                   (not (ast/is-whitespace? child))) [(align-comments first-comment (ast/whitespace-node 0 0)) nil]
+
+                                              :else [child first-comment])
+                        next-child (z/right new-child)]
+                    (if next-child
+                      (recur next-child new-first-comment)
+                      (z/up (if new-first-comment
+                              (align-trailing-comments new-first-comment)
+                              new-child)))))]
+    (assoc context :ast new-ast)))
 
 (defn- traversible?
   [{:keys [ast]}]
