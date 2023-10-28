@@ -31,11 +31,15 @@
     ast
     (z/node ast)))
 
+(defn with-whitespace-meta
+  [node newlines spaces]
+  (with-meta node
+             {:newlines newlines
+              :spaces spaces}))
+
 (defn whitespace-node
-  [number-of-newlines number-of-spaces]
-  (with-meta [:whitespace ""]
-             {:newlines number-of-newlines
-              :spaces number-of-spaces}))
+  [newlines spaces]
+  (with-whitespace-meta [:whitespace ""] newlines spaces))
 
 (defn is-particular-keyword?
   [ast keywords]
@@ -94,6 +98,10 @@
 (defn is-comment?
   [ast]
   (-> ast unpack first (= :comment)))
+
+(defn is-discard?
+  [ast]
+  (-> ast unpack first (= :discard)))
 
 (defn multiline?
   [ast]

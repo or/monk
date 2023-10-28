@@ -580,6 +580,30 @@
     |            :default nil)
     |        arg3)"
 
+    ; exempt form
+    "(do
+    |  #_no-monk (-> foo :first :second :third))"
+
+    "(do
+    |  #_no-monk
+    |  (-> foo :first :second :third
+    |      (conj [ 1 2   3])))"
+
+    "(do
+    |  #_no-monk
+    |     (-> foo :first :second :third
+    |           (conj [ 1 2   3])))"
+
+    "(foobar arg1
+    |        #_no-monk
+    |          (-> foo :first :second :third
+    |            (conj [ 1 2   3]))
+    |        arg3)"
+
+    ; exempt form - short form
+    "(do
+    |  #_! (-> foo :first :second :third))"
+
     ; simple
     "(foobar)"
 

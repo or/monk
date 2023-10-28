@@ -46,6 +46,18 @@
 
       :else :effective)))
 
+(defn- left-without
+  [ast ignored-kinds]
+  (loop [ast (z/left ast)]
+    (if (and ast
+             (get ignored-kinds (-> ast z/node first)))
+      (recur (z/left ast))
+      ast)))
+
+(defn- left-relevant
+  [ast]
+  (left-without ast #{:whitespace :comment}))
+
 (defn- right-without
   [ast ignored-kinds]
   (loop [ast (z/right ast)]
@@ -69,6 +81,12 @@
   (-> ast
       form-kind
       (= :effective)))
+
+(defn- is-exempt-form?
+  [ast]
+  (let [previous (left-relevant ast)]
+    (and (ast/is-discard? previous)
+         (some-> previous z/down (ast/is-particular-symbol? #{'no-monk '!})))))
 
 (declare transform*)
 
@@ -120,14 +138,14 @@
   [ast newlines spaces]
   (let [left-ast (z/left ast)]
     (if (ast/is-whitespace? left-ast)
-      (z/right (z/replace left-ast (ast/whitespace-node newlines spaces)))
+      (z/right (z/replace left-ast (ast/with-whitespace-meta (z/node left-ast) newlines spaces)))
       (z/insert-left ast (ast/whitespace-node newlines spaces)))))
 
 (defn- insert-spaces-right
   [ast newlines spaces]
   (let [right-ast (z/right ast)]
     (if (ast/is-whitespace? right-ast)
-      (z/left (z/replace right-ast (ast/whitespace-node newlines spaces)))
+      (z/left (z/replace right-ast (ast/with-whitespace-meta (z/node right-ast) newlines spaces)))
       (z/insert-right ast (ast/whitespace-node newlines spaces)))))
 
 (defn- process-children
@@ -304,13 +322,15 @@
 (defn transform*
   [{:keys [ast]
     :as context}]
-  (cond-> context
-    (ast/is-metadata? ast) unify-metadata
+  (if (is-exempt-form? ast)
+    context
+    (cond-> context
+      (ast/is-metadata? ast) unify-metadata
 
-    (traversible? ast) (->
-                         transform-children
-                         process-children
-                         process-comments)))
+      (traversible? ast) (->
+                           transform-children
+                           process-children
+                           process-comments))))
 
 (defn transform
   [ast]
@@ -351,36 +371,41 @@
    :eval [2 0]})
 
 (defn concretize-whitespace*
-  [ast base-indentation arg-columns column]
+  [ast base-indentation arg-columns column keep-original-spacing?]
   (let [node (z/node ast)
         [ast-first & ast-rest] node
         [pre post] (get element-widths ast-first)
         new-base-indentation (+ column pre)
         new-column (+ column pre)
         children (z/down ast)
-        {:keys [newlines spaces]} (meta node)]
+        {:keys [newlines spaces]} (meta node)
+        new-keep-original-spacing? (or keep-original-spacing?
+                                       (is-exempt-form? ast))]
     (cond
-      (ast/is-whitespace? ast) (if newlines
-                                 (let [newlines (if (and (= spaces :first-arg)
-                                                         (< (count arg-columns) 3))
-                                                  0
-                                                  newlines)
-                                       spaces (cond
-                                                (= spaces :first-arg) (if (< (count arg-columns) 3)
-                                                                        1
-                                                                        (nth arg-columns 2))
-                                                (= spaces :previous-arg) (last arg-columns)
-                                                (pos? newlines) (+ base-indentation spaces)
-                                                :else spaces)]
-                                   [(z/replace ast
-                                               [:whitespace (apply str (concat (repeat newlines "\n")
-                                                                               (repeat spaces " ")))])
-                                    (if (pos? newlines)
-                                      spaces
-                                      (+ column spaces))])
-                                 ;; TODO: no metadata on a previous whitespace node
-                                 #_[ast (-> ast-rest first (str/split #"\n") last count)]
-                                 [(z/replace ast [:whitespace ""]) column])
+      (ast/is-whitespace? ast) (if new-keep-original-spacing?
+                                 ;; TODO: should calculate new column as well
+                                 [ast column]
+                                 (if newlines
+                                   (let [newlines (if (and (= spaces :first-arg)
+                                                           (< (count arg-columns) 3))
+                                                    0
+                                                    newlines)
+                                         spaces (cond
+                                                  (= spaces :first-arg) (if (< (count arg-columns) 3)
+                                                                          1
+                                                                          (nth arg-columns 2))
+                                                  (= spaces :previous-arg) (last arg-columns)
+                                                  (pos? newlines) (+ base-indentation spaces)
+                                                  :else spaces)]
+                                     [(z/replace ast
+                                                 [:whitespace (apply str (concat (repeat newlines "\n")
+                                                                                 (repeat spaces " ")))])
+                                      (if (pos? newlines)
+                                        spaces
+                                        (+ column spaces))])
+                                   ;; TODO: no metadata on a previous whitespace node
+                                   #_[ast (-> ast-rest first (str/split #"\n") last count)]
+                                   [(z/replace ast [:whitespace ""]) column]))
 
       (and (= (count ast-rest) 1)
            (string? (first ast-rest))) [ast (+ new-column (count (first ast-rest)))]
@@ -394,7 +419,7 @@
                      current-column new-column
                      arg-columns []]
                 (let [[new-child
-                       new-column] (concretize-whitespace* child new-base-indentation arg-columns current-column)
+                       new-column] (concretize-whitespace* child new-base-indentation arg-columns current-column new-keep-original-spacing?)
                       next-child (z/right new-child)]
                   (if next-child
                     (recur next-child new-column (conj arg-columns current-column))
@@ -403,4 +428,4 @@
 
 (defn concretize-whitespace
   [ast]
-  (first (concretize-whitespace* ast 0 [] 0)))
+  (first (concretize-whitespace* ast 0 [] 0 false)))
