@@ -1,5 +1,6 @@
 (ns monk.transform
   (:require
+   [clojure.string :as str]
    [clojure.walk :as walk]
    [clojure.zip :as z]
    [monk.ast :as ast]
@@ -34,19 +35,6 @@
                    formatter))
                formatters)))
 
-(defn remove-whitespace
-  [ast]
-  (ast/zipper
-   (walk/postwalk
-    (fn [data]
-      (if (vector? data)
-        (vec (remove (fn [x]
-                       (and (vector? x)
-                            (= :whitespace (first x))))
-                     data))
-        data))
-    (z/node ast))))
-
 (defn form-kind
   [ast]
   (let [[tag & _rest] (ast/unpack ast)]
@@ -57,6 +45,18 @@
       (#{:discard} tag) :ineffective
 
       :else :effective)))
+
+(defn- right-without
+  [ast ignored-kinds]
+  (loop [ast (z/right ast)]
+    (if (and ast
+             (get ignored-kinds (-> ast z/node first)))
+      (recur (z/right ast))
+      ast)))
+
+(defn- right-relevant
+  [ast]
+  (right-without ast #{:whitespace :comment}))
 
 (defn- inc-or-zero
   [ast]
@@ -79,7 +79,7 @@
   (let [index-in-parent (:index context)
         parent-thread-first-form? (:thread-first-form? parent)
         first-child (first (->> (z/down ast)
-                                (iterate z/right)
+                                (iterate right-relevant)
                                 (take-while some?)
                                 (filter effective-form?)))
         context (assoc context
@@ -89,7 +89,6 @@
                        current-index 0
                        last-sibling nil]
                   (let [kind (form-kind child-ast)
-                        delimiter? (= kind :delimiter)
                         effective? (= kind :effective)
                         next-index (if effective?
                                      (let [new-index (inc-or-zero current-index)]
@@ -104,11 +103,10 @@
                                        :index current-index
                                        :first-sibling first-child
                                        :last-sibling last-sibling
-                                       :delimiter? delimiter?
                                        :effective? effective?}
                         transformed-child (:ast (transform* child-context))
                         transformed-child (z/replace transformed-child (with-meta (z/node transformed-child) child-context))
-                        next-child (z/right transformed-child)]
+                        next-child (right-relevant transformed-child)]
                     (if next-child
                       (recur next-child
                              next-index
@@ -122,14 +120,14 @@
   [ast newlines spaces]
   (let [left-ast (z/left ast)]
     (if (ast/is-whitespace? left-ast)
-      (z/replace left-ast (ast/whitespace-node newlines spaces))
+      (z/right (z/replace left-ast (ast/whitespace-node newlines spaces)))
       (z/insert-left ast (ast/whitespace-node newlines spaces)))))
 
 (defn- insert-spaces-right
   [ast newlines spaces]
   (let [right-ast (z/right ast)]
     (if (ast/is-whitespace? right-ast)
-      (z/replace right-ast (ast/whitespace-node newlines spaces))
+      (z/left (z/replace right-ast (ast/whitespace-node newlines spaces)))
       (z/insert-right ast (ast/whitespace-node newlines spaces)))))
 
 (defn- process-children
@@ -137,7 +135,7 @@
     :as context}]
   (let [formatter (pick-formatter context)
         children (->> (z/down ast)
-                      (iterate z/right)
+                      (iterate #(right-without % #{:whitespace}))
                       (take-while some?))
         multiline?-per-child (map ast/multiline? children)
         num-chunks-per-child (map ast/num-chunks children)
@@ -154,8 +152,7 @@
                        state {}]
                   (let [child-context (meta (z/node child-ast))
                         [new-child-ast
-                         new-state] (if (or (not child-context)
-                                            (:delimiter? child-context))
+                         new-state] (if (not child-context)
                                       [child-ast state]
                                       (let [[[newlines spaces]
                                              new-state] (formatter (merge child-context extra-context) state)]
@@ -164,7 +161,7 @@
                                                (keyword? spaces)
                                                (pos? spaces)) (insert-spaces-left newlines spaces))
                                          new-state]))
-                        next-child (z/right new-child-ast)]
+                        next-child (right-relevant new-child-ast)]
                     (if next-child
                       (recur next-child new-state)
                       (z/up new-child-ast))))]
@@ -172,21 +169,19 @@
 
 (defn- align-comments
   [first-comment initial-whitespace-node]
-  ; TODO: read metadata from initial-whitespace-node, use that
   (loop [ast first-comment]
     (let [[new-ast
            done?] (cond
                     (and (= ast first-comment)
-                         initial-whitespace-node) [(z/insert-left ast initial-whitespace-node) false]
+                         initial-whitespace-node) (let [{:keys [newlines spaces]} (meta initial-whitespace-node)]
+                                                    [(insert-spaces-left ast (or newlines 0) (or spaces 0)) false])
 
                     (= ast first-comment) [ast false]
-
-                    (ast/is-whitespace? ast) [ast false]
 
                     (ast/is-comment? ast) [(insert-spaces-left ast 1 :previous-arg) false]
 
                     :else [(insert-spaces-left ast 1 :previous-arg) true])
-          next-ast (z/right new-ast)]
+          next-ast (right-without new-ast #{:whitespace})]
       (if (and (not done?)
                next-ast)
         (recur next-ast)
@@ -285,31 +280,35 @@
 
 (defn concretize-whitespace*
   [ast base-indentation arg-columns column]
-  (let [[ast-first & ast-rest] (z/node ast)
+  (let [node (z/node ast)
+        [ast-first & ast-rest] node
         [pre post] (get element-widths ast-first)
         new-base-indentation (+ column pre)
         new-column (+ column pre)
-        children (z/down ast)]
+        children (z/down ast)
+        {:keys [newlines spaces]} (meta node)]
     (cond
-      (= ast-first
-         :whitespace) (let [{:keys [newlines spaces]} (first ast-rest)
-                            newlines (if (and (= spaces :first-arg)
-                                              (< (count arg-columns) 3))
-                                       0
-                                       newlines)
-                            spaces (cond
-                                     (= spaces :first-arg) (if (< (count arg-columns) 3)
-                                                             1
-                                                             (nth arg-columns 2))
-                                     (= spaces :previous-arg) (last arg-columns)
-                                     (pos? newlines) (+ base-indentation spaces)
-                                     :else spaces)]
-                        [(z/replace ast
-                                    [:whitespace (apply str (concat (repeat newlines "\n")
-                                                                    (repeat spaces " ")))])
-                         (if (pos? newlines)
-                           spaces
-                           (+ column spaces))])
+      (ast/is-whitespace? ast) (if newlines
+                                 (let [newlines (if (and (= spaces :first-arg)
+                                                         (< (count arg-columns) 3))
+                                                  0
+                                                  newlines)
+                                       spaces (cond
+                                                (= spaces :first-arg) (if (< (count arg-columns) 3)
+                                                                        1
+                                                                        (nth arg-columns 2))
+                                                (= spaces :previous-arg) (last arg-columns)
+                                                (pos? newlines) (+ base-indentation spaces)
+                                                :else spaces)]
+                                   [(z/replace ast
+                                               [:whitespace (apply str (concat (repeat newlines "\n")
+                                                                               (repeat spaces " ")))])
+                                    (if (pos? newlines)
+                                      spaces
+                                      (+ column spaces))])
+                                 ;; TODO: no metadata on a previous whitespace node
+                                 #_[ast (-> ast-rest first (str/split #"\n") last count)]
+                                 [(z/replace ast [:whitespace ""]) column])
 
       (and (= (count ast-rest) 1)
            (string? (first ast-rest))) [ast (+ new-column (count (first ast-rest)))]
@@ -332,14 +331,17 @@
 
 (defn concretize-whitespace
   [ast]
-  (z/node (first (concretize-whitespace* ast 0 [] 0))))
+  (first (concretize-whitespace* ast 0 [] 0)))
 
 (defn- combine-metadata-entries-into-map
   [entries]
   (let [new-entries (first (reduce
                             (fn [[result seen-keys] [entry-kind entry-data]]
                               (let [new-entries (cond
-                                                  (ast/is-map? entry-data) (map vec (partition 2 (rest entry-data)))
+                                                  (ast/is-map? entry-data) (map vec (partition 2 (remove
+                                                                                                  #(or (ast/is-whitespace? %)
+                                                                                                       (ast/is-comment? %))
+                                                                                                  (rest entry-data))))
                                                   (ast/is-symbol? entry-data) [[[:keyword ":tag"] entry-data]]
                                                   :else [[entry-data [:symbol "true"]]])]
                                 (loop [[[new-key
@@ -383,21 +385,23 @@
 
 (defn unify-metadata
   [ast]
-  (ast/zipper
-   (walk/postwalk
-    (fn [data]
-      (if (and (vector? data)
-               (ast/is-metadata? data))
-        (let [entries (subvec data 1 (dec (count data)))
-              map-entries? (some (comp ast/is-map? second) entries)]
-          (if map-entries?
-            (vec (concat [(first data)]
-                         (combine-metadata-entries-into-map entries)
-                         [(last data)]))
+  (walk/postwalk
+   (fn [data]
+     (if (and (vector? data)
+              (ast/is-metadata? data))
+       (let [entries (into []
+                           (remove #(or (ast/is-whitespace? %)
+                                        (ast/is-comment? %)))
+                           (subvec data 1 (dec (count data))))
+             map-entries? (some (comp ast/is-map? second) entries)]
+         (if map-entries?
+           (vec (concat [(first data)]
+                        (combine-metadata-entries-into-map entries)
+                        [(last data)]))
 
-            (vec (concat [(first data)]
-                         (dedupe-inline-metadata-entries entries)
-                         [(last data)]))))
+           (vec (concat [(first data)]
+                        (dedupe-inline-metadata-entries entries)
+                        [(last data)]))))
 
-        data))
-    (z/node ast))))
+       data))
+   ast))

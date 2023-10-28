@@ -33,8 +33,9 @@
 
 (defn whitespace-node
   [number-of-newlines number-of-spaces]
-  [:whitespace {:newlines number-of-newlines
-                :spaces number-of-spaces}])
+  (with-meta [:whitespace ""]
+             {:newlines number-of-newlines
+              :spaces number-of-spaces}))
 
 (defn is-particular-keyword?
   [ast keywords]
@@ -101,7 +102,7 @@
        (filter (fn [node]
                  (and (vector? node)
                       (-> node first (= :whitespace))
-                      (-> node second :newlines pos?))))
+                      (some-> node meta :newlines pos?))))
        seq))
 
 (defn num-chunks

@@ -269,12 +269,12 @@
     |  (assoc :key name)
     |  (assoc :another name))"
 
-    ;; ; TODO: line break after the first argument if necessary
-    ;; #_"(as-> (-> some-map
-    ;; |        (assoc :key :value)
-    ;; |        (assoc :another :value))
-    ;; |      name
-    ;; |  (assoc :key name))"
+    ; TODO: line break after the first argument if necessary
+    #_"(as-> (-> some-map
+    |        (assoc :key :value)
+    |        (assoc :another :value))
+    |      name
+    |  (assoc :key name))"
 
     "(-> some-map
     |  (as-> name
@@ -595,6 +595,11 @@
   (are [input output]
        (= (sut/format-string (prepare-str input))
           (prepare-str output))
+
+    ; remove superfluous whitespace
+    "( foo bar
+    | )"
+    "(foo bar)"
 
     ; metadata unification
     "^:private ^{:foo :bar} ^String foobar"
