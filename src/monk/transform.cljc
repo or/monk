@@ -172,13 +172,17 @@
                         [new-child-ast
                          new-state] (if (not child-context)
                                       [child-ast state]
-                                      (let [[[newlines spaces]
-                                             new-state] (formatter (merge child-context extra-context) state)]
-                                        [(cond-> child-ast
-                                           (or (pos? newlines)
-                                               (keyword? spaces)
-                                               (pos? spaces)) (insert-spaces-left newlines spaces))
-                                         new-state]))
+                                      (let [full-context (merge child-context extra-context)
+                                            [[newlines spaces]
+                                             new-state] (formatter full-context state)
+                                            new-child-ast (cond-> child-ast
+                                                            (or (pos? newlines)
+                                                                (keyword? spaces)
+                                                                (pos? spaces)) (insert-spaces-left newlines spaces))
+                                            new-child-ast (z/replace new-child-ast (with-meta (z/node new-child-ast)
+                                                                                              (assoc full-context :state new-state)))]
+
+                                        [new-child-ast new-state]))
                         next-child (right-relevant new-child-ast)]
                     (if next-child
                       (recur next-child new-state)
@@ -338,6 +342,75 @@
   [ast]
   (:ast (transform* {:ast ast})))
 
+(defn- count-leading-spaces
+  [s]
+  (->> s
+       (take-while #{\space})
+       count))
+
+(defn- adjust-doc-string
+  [ast column]
+  (let [[_ current-string] (z/node ast)
+        previous-node (some-> ast z/left z/node)
+        ; if the node is preceded by a whitespace node with newlines, which should
+        ; be the case in a vast majority of situations, then we know the
+        ; previous column of this element, which allows more accurate
+        ; calculations, if not, then we must guess
+        previous-column (when (and (ast/is-whitespace? ast)
+                                   (str/includes? (second previous-node) "\n"))
+                          (-> previous-node
+                              second
+                              (str/split #"\n")
+                              last
+                              count))
+        lines (-> current-string
+                  (subs 1 (dec (count current-string)))
+                  str/trim
+                  (str/split #"\n"))
+        offsets-and-lengths (->> lines
+                                 (drop 1)
+                                 (map str/trimr)
+                                 (map (juxt count-leading-spaces count))
+                                 (map (fn [[offset length]]
+                                        [offset (- length offset)])))
+        trimmed-lines (map str/trim lines)
+        column-shift (if previous-column
+                       (- column previous-column)
+                       0)
+        base-column (+ column 2)
+        shifted-offsets (map (fn [[offset length
+                                   :as tuple]]
+                               (if (pos? length)
+                                 [(+ offset column-shift) length]
+                                 tuple))
+                             offsets-and-lengths)
+        offsets-without-base-column (map (fn [[offset length
+                                               :as tuple]]
+                                           (if (pos? length)
+                                             [(- offset base-column) length]
+                                             tuple))
+                                         shifted-offsets)
+        main-shift (if (seq offsets-without-base-column)
+                     (apply min (map first offsets-without-base-column))
+                     0)
+        offsets-shifted-and-lengths (->> offsets-without-base-column
+                                         (map (fn [[offset length
+                                                    :as tuple]]
+                                                (if (pos? length)
+                                                  [(- offset main-shift) length]
+                                                  tuple))))
+        adjusted-offsets (map (fn [[offset length]]
+                                (if (pos? length)
+                                  (+ base-column offset)
+                                  0))
+                              offsets-shifted-and-lengths)
+        new-string (str (->> (interleave trimmed-lines
+                                         (map (fn [offset]
+                                                (apply str "\n" (repeat offset " "))) adjusted-offsets))
+                             (apply str))
+                        (last trimmed-lines))]
+    (z/replace ast [:string (str "\"" new-string "\"")])))
+
 (def ^:private element-widths
   {:code [0 0]
    :list [1 1]
@@ -382,7 +455,8 @@
         children (z/down ast)
         {:keys [newlines spaces]} (meta node)
         new-keep-original-spacing? (or keep-original-spacing?
-                                       (is-exempt-form? ast))]
+                                       (is-exempt-form? ast))
+        doc-string? (some-> node meta :state :doc-string?)]
     (cond
       (ast/is-whitespace? ast) (if new-keep-original-spacing?
                                  ;; TODO: should calculate new column as well
@@ -408,6 +482,15 @@
                                    ;; TODO: no metadata on a previous whitespace node
                                    #_[ast (-> ast-rest first (str/split #"\n") last count)]
                                    [(z/replace ast [:whitespace ""]) column]))
+
+      doc-string? (let [new-ast (adjust-doc-string ast column)]
+                    [new-ast (-> new-ast
+                                 z/node
+                                 second
+                                 (str/split #"\n")
+                                 last
+                                 count
+                                 (+ new-column))])
 
       (and (= (count ast-rest) 1)
            (string? (first ast-rest))) [ast (-> ast-rest

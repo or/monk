@@ -99,6 +99,10 @@
   [ast]
   (-> ast unpack first (= :comment)))
 
+(defn is-string?
+  [ast]
+  (-> ast unpack first (= :string)))
+
 (defn is-discard?
   [ast]
   (-> ast unpack first (= :discard)))

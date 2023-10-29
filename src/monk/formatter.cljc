@@ -110,7 +110,9 @@
             index]}
     {:keys [seen-name?
             seen-args?
-            seen-multi-arity?]
+            seen-multi-arity?
+            seen-body?
+            doc-string-index]
      :as state}]
    ; TODO: this needs more logic for the metadata
    [(cond
@@ -118,7 +120,7 @@
       seen-multi-arity? [2 1]
       seen-name? [1 1]
       :else [0 1])
-    (cond-> state
+    (cond-> (dissoc state :doc-string?)
       (and (pos? index)
            (not seen-name?)
            ; function name?
@@ -140,7 +142,22 @@
            (ast/is-list? ast)
            (or (some-> ast z/node second ast/is-vector?)
                ; TODO: check must be smart enough to look inside
-               (some-> ast z/node second ast/is-metadata?))) (assoc :seen-multi-arity? true))]))
+               (some-> ast z/node second ast/is-metadata?))) (assoc :seen-multi-arity? true)
+
+      (and (pos? index)
+           seen-args?
+           (or doc-string-index
+               (not (ast/is-string? ast)))
+           (not seen-multi-arity?)
+           (not seen-body?)) (assoc :seen-body? true)
+
+      (and (pos? index)
+           (not seen-args?)
+           (not doc-string-index)
+           (ast/is-string? ast)
+           (not seen-multi-arity?)
+           (not seen-body?)) (assoc :doc-string-index index
+                                    :doc-string? true))]))
 
 (defformatter defn-multi-arity-function
   ([{:keys [ast parent

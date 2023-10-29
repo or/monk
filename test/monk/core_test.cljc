@@ -55,8 +55,8 @@
     "(defn function-name
     |  \"Some doc string
     |
-    |   with
-    |   multiple lines.\"
+    |    with
+    |    multiple lines.\"
     |  [arg1 arg2]
     |  (body))"
 
@@ -68,8 +68,9 @@
     "(defn- function-name
     |  \"Some doc string
     |
-    |   with
-    |   multiple lines.\"
+    |       with
+    |
+    |    multiple lines.\"
     |  [arg1 arg2]
     |  (body))"
 
@@ -700,6 +701,83 @@
     "^{:private true
     |  :tag String}
     |foobar"
+
+    ; doc string alignment
+    "(defn function-name
+    |  \"This is a doc string.
+    |   It has multiple lines.
+    |
+    |       a line with different offset
+    |
+    |   They are aligned to the first line\"
+    |  [arg]
+    |  (do-a-thing))"
+    "(defn function-name
+    |  \"This is a doc string.
+    |    It has multiple lines.
+    |
+    |        a line with different offset
+    |
+    |    They are aligned to the first line\"
+    |  [arg]
+    |  (do-a-thing))"
+
+    "(defn function-name
+    |  \"This is a doc string.
+    |   It has multiple lines.
+    |
+    |       a line with different offset
+    |
+    |They are aligned to the first line\"
+    |  [arg]
+    |  (do-a-thing))"
+    "(defn function-name
+    |  \"This is a doc string.
+    |       It has multiple lines.
+    |
+    |           a line with different offset
+    |
+    |    They are aligned to the first line\"
+    |  [arg]
+    |  (do-a-thing))"
+
+    "(defn function-name
+    |  \"This is a doc string.
+    |        It has multiple with additional indentation\"
+    |  [arg]
+    |  (do-a-thing))"
+    "(defn function-name
+    |  \"This is a doc string.
+    |    It has multiple with additional indentation\"
+    |  [arg]
+    |  (do-a-thing))"
+
+    "(defn function-name
+    |      \"This is a doc string that'll be moved to the left.
+    |        It has multiple lines.
+    |           With different indentation.\"
+    |  [arg]
+    |  (do-a-thing))"
+    "(defn function-name
+    |  \"This is a doc string that'll be moved to the left.
+    |    It has multiple lines.
+    |       With different indentation.\"
+    |  [arg]
+    |  (do-a-thing))"
+
+    ; doc-string trimming
+    "(defn function-name
+    |  \"    This is a doc string.
+    |    It has multiple lines.
+    |    And needs to be trimmed.    \"
+    |  [arg]
+    |  (do-a-thing))"
+    "(defn function-name
+    |  \"This is a doc string.
+    |    It has multiple lines.
+    |    And needs to be trimmed.\"
+    |  [arg]
+    |  (do-a-thing))"
 
     ;
     ))
