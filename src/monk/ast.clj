@@ -105,28 +105,43 @@
 
 (defn multiline?
   [ast]
-  ; TODO: zipper
-  (->> (tree-seq sequential? seq (unpack ast))
-       (filter (fn [node]
-                 (or (and (vector? node)
-                          (-> node first (= :whitespace))
-                          (some-> node meta :newlines pos?))
-                     (and (vector? node)
-                          (= (count node) 2)
-                          (-> node second string?)
-                          (str/includes? (second node) "\n")))))
-       seq))
+  ; TODO: this doesn't yet distinguish between whitespace nodes without newlines/spaces
+  ; metadata that'll be removed and such nodes that are pre-formatted and must be honoured
+  (let [; TODO: use this dummy node to detect when z/next has left
+        ; the subtree; is there a better way to do this?
+        new-ast (z/insert-right ast [:dummy])
+        right-neighbour (z/right new-ast)]
+    (->> new-ast
+         (iterate z/next)
+         (take-while some?)
+         (take-while (comp not z/end?))
+         (take-while #(not= % right-neighbour))
+         (filter (fn [visited-ast]
+                   (let [node (z/node visited-ast)]
+                     (or (and (is-whitespace? visited-ast)
+                              (some-> node meta :newlines pos?))
+                         (and (= (count node) 2)
+                              (-> node second string?)
+                              (str/includes? (second node) "\n"))))))
+         seq)))
 
 (defn num-chunks
   [ast]
-  ; TODO: zipper
-  (->> (tree-seq sequential? seq (unpack ast))
-       (filter (fn [node]
-                 (and (vector? node)
-                      (-> node first (= :whitespace)))))
-       (take 3)
-       count
-       inc))
+  ; TODO: this doesn't yet distinguish between whitespace nodes without newlines/spaces
+  ; metadata that'll be removed and such nodes that are pre-formatted and must be honoured
+  (let [; TODO: use this dummy node to detect when z/next has left
+        ; the subtree; is there a better way to do this?
+        new-ast (z/insert-right ast [:dummy])
+        right-neighbour (z/right new-ast)]
+    (->> new-ast
+         (iterate z/next)
+         (take-while some?)
+         (take-while (comp not z/end?))
+         (take-while #(not= % right-neighbour))
+         (filter is-whitespace?)
+         (take 3)
+         count
+         inc)))
 
 (defn is-first-threading-function?
   [ast]
