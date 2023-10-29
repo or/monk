@@ -10,6 +10,13 @@
        (map #(str/replace % #"^ *[\\|]" ""))
        (str/join "\n")))
 
+(deftest debug-format-string
+  (are [input]
+       (= (sut/format-string (prepare-str input))
+          (prepare-str input))
+
+    ""))
+
 (deftest format-string
   (are [input]
        (= (sut/format-string (prepare-str input))
@@ -432,6 +439,13 @@
     |         ^{:foo :bar}
     |         arg3)"
 
+    ; metadata duplication in deprecated metadata
+    "#^:foo ^:foo foobar"
+
+    "#^{:foo true}
+    |^{:foo true}
+    |foobar"
+
     ; deref
     "(foo arg1 @arg2 arg3)"
 
@@ -615,6 +629,14 @@
     ;
     ))
 
+(deftest debug-format-string-changes
+  (are [input output]
+       (= (sut/format-string (prepare-str input))
+          (prepare-str output))
+
+    ""
+    ""))
+
 (deftest format-string-changes
   (are [input output]
        (= (sut/format-string (prepare-str input))
@@ -644,7 +666,8 @@
 
     ; metadata unification with deprecated metadata
     "^:private ^{:foo :bar} ^String #^:foo #^{:new :value} foobar"
-    "#^{:new :value}
+    "#^{:foo true
+    |   :new :value}
     |^{:foo :bar
     |  :private true
     |  :tag String}
@@ -656,10 +679,6 @@
     |^{:private true
     |  :tag String}
     |foobar"
-
-    ; dedupe inline metadata entries with deprecated metadata
-    "^String ^:private ^:private ^Integer #^Long foobar"
-    "^:private ^String foobar"
 
     ; comments between metadata is just stripped
     "^String ; a comment

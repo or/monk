@@ -256,18 +256,19 @@
                                                                                                   (rest entry-data))))
                                                   (ast/is-symbol? entry-data) [[[:keyword ":tag"] entry-data]]
                                                   :else [[entry-data [:symbol "true"]]])]
-                                (loop [[[new-key
+                                (loop [[[new-value
                                          :as new-entry] & remaining-entries] new-entries
                                        result result
                                        seen-keys seen-keys]
-                                  (cond
-                                    (nil? new-key) [result seen-keys]
+                                  (let [effective-key [entry-kind new-value]]
+                                    (cond
+                                      (nil? new-value) [result seen-keys]
 
-                                    (get seen-keys new-key) (recur remaining-entries result seen-keys)
+                                      (get seen-keys effective-key) (recur remaining-entries result seen-keys)
 
-                                    :else (recur remaining-entries
-                                                 (conj result [entry-kind new-entry])
-                                                 (conj seen-keys new-key))))))
+                                      :else (recur remaining-entries
+                                                   (conj result [entry-kind new-entry])
+                                                   (conj seen-keys effective-key)))))))
 
                             [[] #{}]
                             entries))
@@ -284,11 +285,12 @@
 (defn- dedupe-inline-metadata-entries
   [entries]
   (sort (first (reduce
-                (fn [[result seen-keys] [_ key
+                (fn [[result seen-keys] [entry-kind key
                                          :as entry]]
-                  (let [effective-key (if (ast/is-symbol? key)
-                                        "symbol"
-                                        key)]
+                  (let [effective-key [entry-kind
+                                       (if (ast/is-symbol? key)
+                                         "symbol"
+                                         key)]]
                     (if (get seen-keys effective-key)
                       [result seen-keys]
                       [(conj result entry) (conj seen-keys effective-key)])))
