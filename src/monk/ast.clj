@@ -108,9 +108,13 @@
   ; TODO: zipper
   (->> (tree-seq sequential? seq (unpack ast))
        (filter (fn [node]
-                 (and (vector? node)
-                      (-> node first (= :whitespace))
-                      (some-> node meta :newlines pos?))))
+                 (or (and (vector? node)
+                          (-> node first (= :whitespace))
+                          (some-> node meta :newlines pos?))
+                     (and (vector? node)
+                          (= (count node) 2)
+                          (-> node second string?)
+                          (str/includes? (second node) "\n")))))
        seq))
 
 (defn num-chunks

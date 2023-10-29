@@ -343,6 +343,12 @@
     |               (arg2 1)
     |               (arg3 2))"
 
+    ; string arguments
+    "(some-function \"arg1\"
+    |               \"arg2
+    | line break\"
+    |               \"arg3\")"
+
     ; comments
     "(do
     |  ; a comment for the next line

@@ -410,7 +410,12 @@
                                    [(z/replace ast [:whitespace ""]) column]))
 
       (and (= (count ast-rest) 1)
-           (string? (first ast-rest))) [ast (+ new-column (count (first ast-rest)))]
+           (string? (first ast-rest))) [ast (-> ast-rest
+                                                first
+                                                (str/split #"\n")
+                                                last
+                                                count
+                                                (+ new-column))]
 
       (and (zero? pre)
            (zero? post)
