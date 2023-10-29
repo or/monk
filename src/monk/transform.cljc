@@ -1,10 +1,11 @@
 (ns monk.transform
   (:require
    [clojure.string :as str]
-   [clojure.walk :as walk]
    [clojure.zip :as z]
    [monk.ast :as ast]
-   [monk.formatter :as formatter]))
+   [monk.formatter :as formatter]
+   [monk.refactor.doc-string :as doc-string]
+   [monk.refactor.metadata :as metadata]))
 
 (def formatters
   [formatter/reader-conditional-form
@@ -28,11 +29,15 @@
    formatter/namespaced-map-form
    formatter/default])
 
+(defn- rule-applies
+  [{:keys [detector]} context]
+  (detector context))
+
 (defn pick-formatter
   [context]
-  (first (keep (fn [{:keys [detector formatter]}]
-                 (when (detector context)
-                   formatter))
+  (first (keep (fn [formatter]
+                 (when (rule-applies formatter context)
+                   (:formatter formatter)))
                formatters)))
 
 (defn form-kind
@@ -249,167 +254,32 @@
                               new-child)))))]
     (assoc context :ast new-ast)))
 
-(defn- combine-metadata-entries-into-map
-  [entries]
-  (let [new-entries (first (reduce
-                            (fn [[result seen-keys] [entry-kind entry-data]]
-                              (let [new-entries (cond
-                                                  (ast/is-map? entry-data) (map vec (partition 2 (remove
-                                                                                                  #(or (ast/is-whitespace? %)
-                                                                                                       (ast/is-comment? %))
-                                                                                                  (rest entry-data))))
-                                                  (ast/is-symbol? entry-data) [[[:keyword ":tag"] entry-data]]
-                                                  :else [[entry-data [:symbol "true"]]])]
-                                (loop [[[new-value
-                                         :as new-entry] & remaining-entries] new-entries
-                                       result result
-                                       seen-keys seen-keys]
-                                  (let [effective-key [entry-kind new-value]]
-                                    (cond
-                                      (nil? new-value) [result seen-keys]
-
-                                      (get seen-keys effective-key) (recur remaining-entries result seen-keys)
-
-                                      :else (recur remaining-entries
-                                                   (conj result [entry-kind new-entry])
-                                                   (conj seen-keys effective-key)))))))
-
-                            [[] #{}]
-                            entries))
-        sorted-entries (sort new-entries)
-        {deprecated-entries :deprecated_metadata_entry
-         non-deprecated-entries :metadata_entry} (group-by first sorted-entries)]
-    (cond-> []
-      (seq deprecated-entries) (conj [:deprecated_metadata_entry
-                                      (into [:map] (apply concat (map second deprecated-entries)))])
-
-      (seq non-deprecated-entries) (conj [:metadata_entry
-                                          (into [:map] (apply concat (map second non-deprecated-entries)))]))))
-
-(defn- dedupe-inline-metadata-entries
-  [entries]
-  (sort (first (reduce
-                (fn [[result seen-keys] [entry-kind key
-                                         :as entry]]
-                  (let [effective-key [entry-kind
-                                       (if (ast/is-symbol? key)
-                                         "symbol"
-                                         key)]]
-                    (if (get seen-keys effective-key)
-                      [result seen-keys]
-                      [(conj result entry) (conj seen-keys effective-key)])))
-                [[] #{}]
-                entries))))
-
-(defn unify-metadata
-  [{:keys [ast]
-    :as context}]
-  (let [node (z/node ast)
-        entries (into []
-                      (remove #(or (ast/is-whitespace? %)
-                                   (ast/is-comment? %)))
-                      (subvec node 1 (dec (count node))))
-        map-entries? (some (comp ast/is-map? second) entries)
-        new-node (if map-entries?
-                   (vec (concat [(first node)]
-                                (combine-metadata-entries-into-map entries)
-                                [(last node)]))
-
-                   (vec (concat [(first node)]
-                                (dedupe-inline-metadata-entries entries)
-                                [(last node)])))]
-    (assoc context :ast (z/replace ast new-node))))
-
 (defn- traversible?
   [ast]
   (and (some-> ast z/node second vector?)
        (-> ast z/down z/node)))
+
+(defn- refactor
+  [context]
+  (cond-> context
+    (metadata/refactorable? context) metadata/refactor))
 
 (defn transform*
   [{:keys [ast]
     :as context}]
   (if (is-exempt-form? ast)
     context
-    (cond-> context
-      (ast/is-metadata? ast) unify-metadata
-
-      (traversible? ast) (->
-                           transform-children
-                           process-children
-                           process-comments))))
+    (-> context
+        refactor
+        (cond->
+          (traversible? ast) (->
+                               transform-children
+                               process-children
+                               process-comments)))))
 
 (defn transform
   [ast]
   (:ast (transform* {:ast ast})))
-
-(defn- count-leading-spaces
-  [s]
-  (->> s
-       (take-while #{\space})
-       count))
-
-(defn- adjust-doc-string
-  [ast column]
-  (let [[_ current-string] (z/node ast)
-        previous-node (some-> ast z/left z/node)
-        ; if the node is preceded by a whitespace node with newlines, which should
-        ; be the case in a vast majority of situations, then we know the
-        ; previous column of this element, which allows more accurate
-        ; calculations, if not, then we must guess
-        previous-column (when (and (ast/is-whitespace? ast)
-                                   (str/includes? (second previous-node) "\n"))
-                          (-> previous-node
-                              second
-                              (str/split #"\n")
-                              last
-                              count))
-        lines (-> current-string
-                  (subs 1 (dec (count current-string)))
-                  str/trim
-                  (str/split #"\n"))
-        offsets-and-lengths (->> lines
-                                 (drop 1)
-                                 (map str/trimr)
-                                 (map (juxt count-leading-spaces count))
-                                 (map (fn [[offset length]]
-                                        [offset (- length offset)])))
-        trimmed-lines (map str/trim lines)
-        column-shift (if previous-column
-                       (- column previous-column)
-                       0)
-        base-column (+ column 2)
-        shifted-offsets (map (fn [[offset length
-                                   :as tuple]]
-                               (if (pos? length)
-                                 [(+ offset column-shift) length]
-                                 tuple))
-                             offsets-and-lengths)
-        offsets-without-base-column (map (fn [[offset length
-                                               :as tuple]]
-                                           (if (pos? length)
-                                             [(- offset base-column) length]
-                                             tuple))
-                                         shifted-offsets)
-        main-shift (if (seq offsets-without-base-column)
-                     (apply min (map first offsets-without-base-column))
-                     0)
-        offsets-shifted-and-lengths (->> offsets-without-base-column
-                                         (map (fn [[offset length
-                                                    :as tuple]]
-                                                (if (pos? length)
-                                                  [(- offset main-shift) length]
-                                                  tuple))))
-        adjusted-offsets (map (fn [[offset length]]
-                                (if (pos? length)
-                                  (+ base-column offset)
-                                  0))
-                              offsets-shifted-and-lengths)
-        new-string (str (->> (interleave trimmed-lines
-                                         (map (fn [offset]
-                                                (apply str "\n" (repeat offset " "))) adjusted-offsets))
-                             (apply str))
-                        (last trimmed-lines))]
-    (z/replace ast [:string (str "\"" new-string "\"")])))
 
 (def ^:private element-widths
   {:code [0 0]
@@ -483,7 +353,7 @@
                                    #_[ast (-> ast-rest first (str/split #"\n") last count)]
                                    [(z/replace ast [:whitespace ""]) column]))
 
-      doc-string? (let [new-ast (adjust-doc-string ast column)]
+      doc-string? (let [new-ast (doc-string/refactor ast column)]
                     [new-ast (-> new-ast
                                  z/node
                                  second
