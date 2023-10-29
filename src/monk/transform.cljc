@@ -353,14 +353,15 @@
                                    #_[ast (-> ast-rest first (str/split #"\n") last count)]
                                    [(z/replace ast [:whitespace ""]) column]))
 
-      doc-string? (let [new-ast (doc-string/refactor ast column)]
-                    [new-ast (-> new-ast
-                                 z/node
-                                 second
-                                 (str/split #"\n")
-                                 last
-                                 count
-                                 (+ new-column))])
+      (and (not new-keep-original-spacing?)
+           doc-string?) (let [new-ast (doc-string/refactor ast column)]
+                          [new-ast (-> new-ast
+                                       z/node
+                                       second
+                                       (str/split #"\n")
+                                       last
+                                       count
+                                       (+ new-column))])
 
       (and (= (count ast-rest) 1)
            (string? (first ast-rest))) [ast (-> ast-rest

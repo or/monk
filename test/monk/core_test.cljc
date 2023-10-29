@@ -625,6 +625,30 @@
     "(do
     |  #_! (-> foo :first :second :third))"
 
+    ; exempt form - doc string
+    "(defn function-name
+    |  #_!
+    |  \"This is a doc string.
+    |       It has multiple lines.
+    |
+    |     a line with different offset
+    |
+    | should be ignored.\"
+    |  [arg]
+    |  (do-a-thing))"
+
+    "#_!
+    |(defn function-name
+    |  \"This is a doc string.
+    |       It has multiple lines.
+    |
+    |     a line with different offset
+    |
+    | should be ignored.\"
+    |  [arg]
+    |  (do-a-thing))"
+
+
     ; simple
     "(foobar)"
 
