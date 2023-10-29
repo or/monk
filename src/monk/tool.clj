@@ -49,7 +49,7 @@
                 :file file}]
     (try
       (let [original (io/read-file file)
-            revised (monk/format-string original options)]
+            revised (str (monk/format-string original options) "\n")]
         (if (= original revised)
           (assoc-in status [:counts :okay] 1)
           (-> status
@@ -123,7 +123,7 @@
   (trace "Processing file:" file)
   (try
     (let [original (io/read-file file)
-          revised (monk/format-string original options)
+          revised (str (monk/format-string original options) "\n")
           changed? (not= original revised)]
       (io/update-file file revised changed?)
       (cond-> {:file file}
