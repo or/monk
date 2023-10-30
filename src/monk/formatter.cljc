@@ -383,3 +383,41 @@
   ([context state]
    [(paired-element* 0 0 context)
     state]))
+
+(defformatter defprotocol-form
+  ([{:keys [ast
+            first-child]}]
+   (and (ast/is-list? ast)
+        (ast/is-particular-symbol? first-child #{'defprotocol})))
+
+  ([{:keys [ast
+            index]}
+    {:keys [seen-name?
+            seen-body?
+            doc-string-index]
+     :as state}]
+   ; TODO: this needs more logic for the metadata
+   [(cond
+      (zero? index) [0 0]
+      seen-name? [1 1]
+      :else [0 1])
+    (cond-> (dissoc state :doc-string?)
+      (and (pos? index)
+           (not seen-name?)
+           ; function name?
+           (or (ast/is-symbol? ast)
+               ; TODO: check must be smart enough to look inside
+               (ast/is-metadata? ast))) (assoc :seen-name? true)
+
+      (and (pos? index)
+           seen-name?
+           (or doc-string-index
+               (not (ast/is-string? ast)))
+           (not seen-body?)) (assoc :seen-body? true)
+
+      (and (pos? index)
+           seen-name?
+           (not doc-string-index)
+           (ast/is-string? ast)
+           (not seen-body?)) (assoc :doc-string-index index
+                                    :doc-string? true))]))

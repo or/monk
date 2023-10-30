@@ -17,6 +17,7 @@
    formatter/let-like-bindings
    formatter/letfn-bindings
    formatter/letfn-binding-function
+   formatter/defprotocol-form
    formatter/metadata-form
    formatter/map-form
    formatter/vector-form

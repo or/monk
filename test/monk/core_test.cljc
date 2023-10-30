@@ -652,6 +652,19 @@
     |  [arg]
     |  (do-a-thing))"
 
+    ; defprotocol
+    "(defprotocol Protocol
+    |  (method-name [this])
+    |  (method-name-2 [this])
+    |  (method-name-3 [this]
+    |                 [this a]
+    |                 [this a b]
+    |                 [this a b c]))"
+
+    ; defprotocol
+    "(defprotocol Protocol
+    |  \"A doc-string.\"
+    |  (method-name [this]))"
 
     ; simple
     "(foobar)"
@@ -818,6 +831,18 @@
     |    It has multiple lines.
     |    And needs to be trimmed.\"
     |  :value)"
+
+    ; doc-string in defprotocol
+    "(defprotocol Protocol
+    |  \"    This is a doc string.
+    |  It has multiple lines.
+    |  And needs to be trimmed.    \"
+    |  (method-name [this]))"
+    "(defprotocol Protocol
+    |  \"This is a doc string.
+    |    It has multiple lines.
+    |    And needs to be trimmed.\"
+    |  (method-name [this]))"
 
     ;
     ))
