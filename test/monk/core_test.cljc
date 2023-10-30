@@ -131,6 +131,10 @@
     "(def ^:private var-name
     |  (some-stuff arg1 arg2))"
 
+    "(def ^:private var-name
+    |  \"A doc-string.\"
+    |  (some-stuff arg1 arg2))"
+
     ; top level
     "(ns foobar)
     |
@@ -802,6 +806,18 @@
     |    And needs to be trimmed.\"
     |  [arg]
     |  (do-a-thing))"
+
+    ; doc-string in def
+    "(def ^:private var-name
+    |  \"    This is a doc string.
+    |  It has multiple lines.
+    |  And needs to be trimmed.    \"
+    |  :value)"
+    "(def ^:private var-name
+    |  \"This is a doc string.
+    |    It has multiple lines.
+    |    And needs to be trimmed.\"
+    |  :value)"
 
     ;
     ))

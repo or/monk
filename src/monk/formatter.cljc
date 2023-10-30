@@ -181,19 +181,34 @@
         (ast/is-particular-symbol? first-child #{'def})))
 
   ([{:keys [ast index]}
-    {:keys [seen-name?]
+    {:keys [seen-name?
+            seen-body?
+            doc-string-index]
      :as state}]
    ; TODO: this needs more logic for the metadata
-   (let [likely-function-name? (or (ast/is-symbol? ast)
-                                   (ast/is-metadata? ast))]
+   (let [likely-var-name? (or (ast/is-symbol? ast)
+                              (ast/is-metadata? ast))]
      [(cond
         (zero? index) [0 0]
         seen-name? [1 1]
         :else [0 1])
-      (cond-> state
+      (cond-> (dissoc state :doc-string?)
         (and (pos? index)
              (not seen-name?)
-             likely-function-name?) (assoc :seen-name? true))])))
+             likely-var-name?) (assoc :seen-name? true)
+
+        (and (pos? index)
+             seen-name?
+             (or doc-string-index
+                 (not (ast/is-string? ast)))
+             (not seen-body?)) (assoc :seen-body? true)
+
+        (and (pos? index)
+             seen-name?
+             (not doc-string-index)
+             (ast/is-string? ast)
+             (not seen-body?)) (assoc :doc-string-index index
+                                      :doc-string? true))])))
 
 (defformatter fn-form
   ([{:keys [ast
