@@ -31,6 +31,20 @@
     |  (:import
     |    [some.namespace Class1 Class2]))"
 
+    "(ns foo.bar
+    |  (:require
+    |    [some.thing :as thing]
+    |    #?(:clj [clj.some.other :as other]
+    |       :cljs [cljs.some.other :as other])
+    |    #?@(:clj #_! [[clj.some.other :as other]
+    |                  [clj.some.other2 :as other2]]
+    |        :cljs [[cljs.some.other :as other]])))"
+
+    "(ns monk.main
+    |  (:require
+    |    [clojure.java.io :as io])
+    |  (:gen-class))"
+
     ; map
     "{:key :value
     | :another-key (another-value arg1 arg2)}"
@@ -843,6 +857,64 @@
     |    It has multiple lines.
     |    And needs to be trimmed.\"
     |  (method-name [this]))"
+
+    ; ns-block require sorting
+    "(ns foobar
+    |  (:require
+    |    [some.where :as where]
+    |    [some.what :as what]
+    |    a.b.c
+    |    [else.where :as foo]))"
+    "(ns foobar
+    |  (:require
+    |    a.b.c
+    |    [else.where :as foo]
+    |    [some.what :as what]
+    |    [some.where :as where]))"
+
+    "(ns foobar
+    |  (:require
+    |    [some.where :as where]
+    |    #_[a.b.c]
+    |    ; multiple
+    |    ; comments
+    |    ; for what
+    |    [some.what :as what]
+    |    ; comment for foo
+    |    [else.where :as foo]
+    |))"
+    "(ns foobar
+    |  (:require
+    |    #_[a.b.c]
+    |    ; comment for foo
+    |    [else.where :as foo]
+    |    ; multiple
+    |    ; comments
+    |    ; for what
+    |    [some.what :as what]
+    |    [some.where :as where]))"
+
+    "(ns foobar
+    |  (:require
+    |    [some.where :as where]
+    |    #_[a.b.c]
+    |    ; multiple
+    |    ; comments
+    |    ; for what
+    |    [\"some.what\" :as what]
+    |    ; comment for foo
+    |    [else.where :as foo]
+    |))"
+    "(ns foobar
+    |  (:require
+    |    ; multiple
+    |    ; comments
+    |    ; for what
+    |    [\"some.what\" :as what]
+    |    #_[a.b.c]
+    |    ; comment for foo
+    |    [else.where :as foo]
+    |    [some.where :as where]))"
 
     ;
     ))

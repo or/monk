@@ -5,7 +5,8 @@
    [monk.ast :as ast]
    [monk.formatter :as formatter]
    [monk.refactor.doc-string :as doc-string]
-   [monk.refactor.metadata :as metadata]))
+   [monk.refactor.metadata :as metadata]
+   [monk.refactor.ns-block :as ns-block]))
 
 (def formatters
   [formatter/reader-conditional-form
@@ -263,7 +264,8 @@
 (defn- refactor
   [context]
   (cond-> context
-    (metadata/refactorable? context) metadata/refactor))
+    (metadata/refactorable? context) metadata/refactor
+    (ns-block/refactorable? context) ns-block/refactor))
 
 (defn transform*
   [{:keys [ast]

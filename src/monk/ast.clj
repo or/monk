@@ -23,13 +23,16 @@
             (vec data)
             data)))))
 
+(defn loc?
+  [ast]
+  (not (or (nil? ast)
+           (and (vector? ast)
+                (some-> ast first keyword?)))))
+
 (defn unpack
   [ast]
-  (if (or (nil? ast)
-          (and (vector? ast)
-               (some-> ast first keyword?)))
-    ast
-    (z/node ast)))
+  (cond-> ast
+    (loc? ast) z/node))
 
 (defn with-whitespace-meta
   [node newlines spaces]
@@ -60,6 +63,10 @@
 (defn is-symbol?
   [ast]
   (-> ast unpack first (= :symbol)))
+
+(defn is-keyword?
+  [ast]
+  (-> ast unpack first (= :keyword)))
 
 (defn is-list?
   [ast]
@@ -146,3 +153,11 @@
   [ast first-child]
   (and (-> ast unpack first (= :list))
        (is-first-threading-function? (unpack first-child))))
+
+(defn unwrap-metadata
+  [ast]
+  (if (is-metadata? ast)
+    (if (loc? ast)
+      (z/down ast)
+      (last ast))
+    ast))
