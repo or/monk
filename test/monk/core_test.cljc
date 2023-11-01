@@ -401,6 +401,13 @@
     |               arg1
     |               arg2)"
 
+    ; comments as the last children
+    "(do
+    |  (something)
+    |  ; comment
+    |  ; comment2
+    | )"
+
     "(; a comment
     | )"
 

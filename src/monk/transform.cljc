@@ -192,11 +192,29 @@
 
 (defn- align-trailing-comments
   [first-comment]
-  (let [is-top-level-child? (some-> first-comment z/up ast/is-top-level?)]
+  (let [is-top-level-child? (some-> first-comment z/up ast/is-top-level?)
+        last-whitespace-node (some->> first-comment
+                                      (iterate z/left)
+                                      (take-while some?)
+                                      (filter ast/is-whitespace?)
+                                      (filter (comp meta z/node))
+                                      first
+                                      z/node)
+        {:keys [newlines]} (meta last-whitespace-node)
+        last-whitespace-node (cond
+                               is-top-level-child? nil
+
+                               (and newlines
+                                    (not= newlines 0))
+                               (with-meta [:whitespace ""]
+                                          {:newlines :keep-existing
+                                           :spaces :first-arg})
+
+                               :else last-whitespace-node)]
     (-> first-comment
         (cond->
           is-top-level-child? (insert-spaces-left 2 0))
-        (align-comments nil)
+        (align-comments last-whitespace-node)
         (cond->
           (not is-top-level-child?) (insert-spaces-right 1 0)))))
 
