@@ -123,7 +123,8 @@
        (filter (fn [node]
                  (or (and (vector? node)
                           (-> node first (= :whitespace))
-                          (some-> node meta :newlines pos?))
+                          (or (some-> node meta :newlines #{:keep-existing})
+                              (some-> node meta :newlines pos?)))
                      (and (vector? node)
                           (= (count node) 2)
                           (-> node second string?)

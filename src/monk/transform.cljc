@@ -133,6 +133,7 @@
   (let [formatter (pick-formatter context)
         children (->> (z/down ast)
                       (iterate #(ast/right-without % #{:whitespace}))
+                      (filter #(not (ast/is-whitespace? %)))
                       (take-while some?))
         multiline?-per-child (map ast/multiline? children)
         num-chunks-per-child (map ast/num-chunks children)
@@ -155,7 +156,8 @@
                                             [[newlines spaces]
                                              new-state] (formatter full-context state)
                                             new-child-ast (cond-> child-ast
-                                                            (or (pos? newlines)
+                                                            (or (= newlines :keep-existing)
+                                                                (pos? newlines)
                                                                 (keyword? spaces)
                                                                 (pos? spaces)) (insert-spaces-left newlines spaces))
                                             new-child-ast (z/replace new-child-ast (with-meta (z/node new-child-ast)
@@ -313,10 +315,11 @@
                                  ;; TODO: should calculate new column as well
                                  [ast column]
                                  (if newlines
-                                   (let [newlines (if (and (= spaces :first-arg)
-                                                           (< (count arg-columns) 3))
-                                                    0
-                                                    newlines)
+                                   (let [newlines (cond
+                                                    (= newlines :keep-existing) (max 1 (count (re-seq #"\n" (second node))))
+                                                    (and (= spaces :first-arg)
+                                                         (< (count arg-columns) 3)) 0
+                                                    :else newlines)
                                          spaces (cond
                                                   (= spaces :first-arg) (if (< (count arg-columns) 3)
                                                                           1

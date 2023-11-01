@@ -1,5 +1,6 @@
 (ns monk.formatter
   (:require
+   [clojure.string :as str]
    [clojure.zip :as z]
    [monk.ast :as ast]
    [monk.macro :refer [defformatter]]))
@@ -21,7 +22,9 @@
    'if-let 1
    '-> 1
    '->> 1
-   'as-> 2})
+   'as-> 2
+   'deftest 1
+   'are 2})
 
 (defn- block-form*
   [num-args {:keys [index]}]
@@ -72,13 +75,19 @@
   ([{:keys [ast]}]
    (ast/is-vector? ast))
 
-  ([{:keys [index
+  ([{:keys [ast
+            index
             require-linebreaks?]} state]
-   [(cond
-      (zero? index) [0 0]
-      require-linebreaks? [1 0]
-      :else [0 1])
-    state]))
+   (let [left-node (z/left ast)
+         user-linebreak? (and (ast/is-whitespace? left-node)
+                              (some? (z/left left-node))
+                              (str/includes? (second (z/node left-node)) "\n"))]
+     [(cond
+        (zero? index) [0 0]
+        require-linebreaks? [1 0]
+        user-linebreak? [:keep-existing 0]
+        :else [0 1])
+      state])))
 
 (defformatter ns-block-form
   ([{:keys [ast
