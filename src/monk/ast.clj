@@ -161,3 +161,33 @@
       (z/down ast)
       (last ast))
     ast))
+
+(defn left-without
+  [ast ignored-kinds]
+  (loop [ast (z/left ast)]
+    (if (and ast
+             (get ignored-kinds (-> ast z/node first)))
+      (recur (z/left ast))
+      ast)))
+
+(defn left-relevant
+  [ast]
+  (left-without ast #{:whitespace :comment}))
+
+(defn right-without
+  [ast ignored-kinds]
+  (loop [ast (z/right ast)]
+    (if (and ast
+             (get ignored-kinds (-> ast z/node first)))
+      (recur (z/right ast))
+      ast)))
+
+(defn right-relevant
+  [ast]
+  (right-without ast #{:whitespace :comment}))
+
+(defn is-exempt-form?
+  [ast]
+  (let [previous (left-relevant ast)]
+    (and (is-discard? previous)
+         (some-> previous z/down (is-particular-symbol? #{'no-monk '!})))))

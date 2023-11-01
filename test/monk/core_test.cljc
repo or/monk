@@ -757,6 +757,10 @@
     |  :tag String}
     |foobar"
 
+    ; exempt forms stay untouched
+    "#_! ^:private ^{:foo :bar} ^String #^:foo #^{:new :value} foobar"
+    "#_! ^:private ^{:foo :bar} ^String #^:foo #^{:new :value} foobar"
+
     ; doc string alignment
     "(defn function-name
     |  \"This is a doc string.
@@ -915,6 +919,53 @@
     |    ; comment for foo
     |    [else.where :as foo]
     |    [some.where :as where]))"
+
+    ; exempt forms should not be sorted
+    "#_! (ns foobar
+    |  (:require
+    |    [some.where :as where]
+    |    #_[a.b.c]
+    |    ; multiple
+    |    ; comments
+    |    ; for what
+    |    [\"some.what\" :as what]
+    |    ; comment for foo
+    |    [else.where :as foo]
+    |))"
+    "#_! (ns foobar
+    |  (:require
+    |    [some.where :as where]
+    |    #_[a.b.c]
+    |    ; multiple
+    |    ; comments
+    |    ; for what
+    |    [\"some.what\" :as what]
+    |    ; comment for foo
+    |    [else.where :as foo]
+    |))"
+
+    "(ns foobar
+    |  #_! (:require
+    |    [some.where :as where]
+    |    #_[a.b.c]
+    |    ; multiple
+    |    ; comments
+    |    ; for what
+    |    [\"some.what\" :as what]
+    |    ; comment for foo
+    |    [else.where :as foo]
+    |))"
+    "(ns foobar
+    |  #_! (:require
+    |    [some.where :as where]
+    |    #_[a.b.c]
+    |    ; multiple
+    |    ; comments
+    |    ; for what
+    |    [\"some.what\" :as what]
+    |    ; comment for foo
+    |    [else.where :as foo]
+    |))"
 
     ;
     ))

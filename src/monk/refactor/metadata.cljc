@@ -75,5 +75,8 @@
     (assoc context :ast (z/replace ast new-node))))
 
 (defn refactorable?
-  [{:keys [ast]}]
-  (ast/is-metadata? ast))
+  [{:keys [ast
+           exempt?]}]
+  (and (ast/is-metadata? ast)
+       (not exempt?)
+       (not (ast/is-exempt-form? ast))))

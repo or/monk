@@ -62,10 +62,12 @@
     (assoc context :ast new-ast)))
 
 (defn refactorable?
-  [{:keys [ast]}]
+  [{:keys [ast exempt?]}]
   ; TODO: needs to be more accurate
-  (let [first-child (z/down ast)
-        first-parent-sibling (z/leftmost ast)]
-    (and (ast/is-list? ast)
-         (ast/is-particular-keyword? first-child ns-block-keywords)
-         (ast/is-particular-symbol? first-parent-sibling #{'ns}))))
+  (and (let [first-child (z/down ast)
+             first-parent-sibling (z/leftmost ast)]
+         (and (ast/is-list? ast)
+              (ast/is-particular-keyword? first-child ns-block-keywords)
+              (ast/is-particular-symbol? first-parent-sibling #{'ns})))
+       (not exempt?)
+       (not (ast/is-exempt-form? ast))))

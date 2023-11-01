@@ -53,30 +53,6 @@
 
       :else :effective)))
 
-(defn- left-without
-  [ast ignored-kinds]
-  (loop [ast (z/left ast)]
-    (if (and ast
-             (get ignored-kinds (-> ast z/node first)))
-      (recur (z/left ast))
-      ast)))
-
-(defn- left-relevant
-  [ast]
-  (left-without ast #{:whitespace :comment}))
-
-(defn- right-without
-  [ast ignored-kinds]
-  (loop [ast (z/right ast)]
-    (if (and ast
-             (get ignored-kinds (-> ast z/node first)))
-      (recur (z/right ast))
-      ast)))
-
-(defn- right-relevant
-  [ast]
-  (right-without ast #{:whitespace :comment}))
-
 (defn- inc-or-zero
   [ast]
   (if ast
@@ -89,12 +65,6 @@
       form-kind
       (= :effective)))
 
-(defn- is-exempt-form?
-  [ast]
-  (let [previous (left-relevant ast)]
-    (and (ast/is-discard? previous)
-         (some-> previous z/down (ast/is-particular-symbol? #{'no-monk '!})))))
-
 (declare transform*)
 
 (defn- transform-children
@@ -102,12 +72,14 @@
            ast]
     :as context}]
   (let [index-in-parent (:index context)
+        exempt? (ast/is-exempt-form? ast)
         parent-thread-first-form? (:thread-first-form? parent)
         first-child (first (->> (z/down ast)
-                                (iterate right-relevant)
+                                (iterate ast/right-relevant)
                                 (take-while some?)
                                 (filter effective-form?)))
         context (assoc context
+                       :exempt? exempt?
                        :first-child first-child
                        :thread-first-form? (ast/thread-first-form? ast first-child))
         new-ast (loop [child-ast (z/down ast)
@@ -131,7 +103,7 @@
                                        :effective? effective?}
                         transformed-child (:ast (transform* child-context))
                         transformed-child (z/replace transformed-child (with-meta (z/node transformed-child) child-context))
-                        next-child (right-relevant transformed-child)]
+                        next-child (ast/right-relevant transformed-child)]
                     (if next-child
                       (recur next-child
                              next-index
@@ -160,7 +132,7 @@
     :as context}]
   (let [formatter (pick-formatter context)
         children (->> (z/down ast)
-                      (iterate #(right-without % #{:whitespace}))
+                      (iterate #(ast/right-without % #{:whitespace}))
                       (take-while some?))
         multiline?-per-child (map ast/multiline? children)
         num-chunks-per-child (map ast/num-chunks children)
@@ -190,7 +162,7 @@
                                                                                               (assoc full-context :state new-state)))]
 
                                         [new-child-ast new-state]))
-                        next-child (right-relevant new-child-ast)]
+                        next-child (ast/right-relevant new-child-ast)]
                     (if next-child
                       (recur next-child new-state)
                       (z/up new-child-ast))))]
@@ -210,7 +182,7 @@
                     (ast/is-comment? ast) [(insert-spaces-left ast 1 :previous-arg) false]
 
                     :else [(insert-spaces-left ast 1 :previous-arg) true])
-          next-ast (right-without new-ast #{:whitespace})]
+          next-ast (ast/right-without new-ast #{:whitespace})]
       (if (and (not done?)
                next-ast)
         (recur next-ast)
@@ -270,7 +242,7 @@
 (defn transform*
   [{:keys [ast]
     :as context}]
-  (if (is-exempt-form? ast)
+  (if (ast/is-exempt-form? ast)
     context
     (-> context
         refactor
@@ -328,7 +300,7 @@
         children (z/down ast)
         {:keys [newlines spaces]} (meta node)
         new-keep-original-spacing? (or keep-original-spacing?
-                                       (is-exempt-form? ast))
+                                       (ast/is-exempt-form? ast))
         doc-string? (some-> node meta :state :doc-string?)]
     (cond
       (ast/is-whitespace? ast) (if new-keep-original-spacing?
