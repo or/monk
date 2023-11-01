@@ -5,6 +5,13 @@
    [monk.ast :as ast]
    [monk.macro :refer [defformatter]]))
 
+(defn- user-linebreak?
+  [ast]
+  (let [left-node (z/left ast)]
+    (and (ast/is-whitespace? left-node)
+         (some? (z/left left-node))
+         (str/includes? (second (z/node left-node)) "\n"))))
+
 (def ^:private block-tokens
   {'ns 1
    'do 0
@@ -27,11 +34,15 @@
    'are 2})
 
 (defn- block-form*
-  [num-args {:keys [index]}]
-  (cond
-    (zero? index) [0 0]
-    (<= index num-args) [0 1]
-    :else [1 1]))
+  [num-args {:keys [ast index]}]
+  (let [user-linebreak? (user-linebreak? ast)]
+    (cond
+      (zero? index) [0 0]
+      (and (<= index num-args)
+           user-linebreak?) [:keep-existing :first-arg]
+      (<= index num-args) [0 1]
+      user-linebreak? [:keep-existing 1]
+      :else [1 1])))
 
 (defformatter default
   ([_context]
@@ -70,13 +81,6 @@
   ([context state]
    [(paired-element* 0 0 context)
     state]))
-
-(defn- user-linebreak?
-  [ast]
-  (let [left-node (z/left ast)]
-    (and (ast/is-whitespace? left-node)
-         (some? (z/left left-node))
-         (str/includes? (second (z/node left-node)) "\n"))))
 
 (defformatter vector-form
   ([{:keys [ast]}]

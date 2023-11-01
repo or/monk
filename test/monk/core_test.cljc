@@ -696,6 +696,19 @@
     |  \"A doc-string.\"
     |  (method-name [this]))"
 
+    ; block forms with extra line breaks
+    "(do
+    |  (first-thing)
+    |
+    |  (second-thing))"
+
+    "(are foo
+    |     bar
+    |
+    |  (first-thing)
+    |
+    |  (second-thing))"
+
     ; simple
     "(foobar)"
 
