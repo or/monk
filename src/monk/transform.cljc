@@ -301,9 +301,15 @@
         {:keys [newlines spaces]} (meta node)
         new-keep-original-spacing? (or keep-original-spacing?
                                        (ast/is-exempt-form? ast))
+        parent-is-discard? (some-> ast z/up ast/is-discard?)
+        sibling-is-discard? (some-> ast ast/left-relevant ast/is-discard?)
+        first-child-in-discard-form? (and parent-is-discard?
+                                          (or (nil? (ast/left-relevant ast))
+                                              sibling-is-discard?))
         doc-string? (some-> node meta :state :doc-string?)]
     (cond
-      (ast/is-whitespace? ast) (if new-keep-original-spacing?
+      (ast/is-whitespace? ast) (if (or new-keep-original-spacing?
+                                       first-child-in-discard-form?)
                                  ;; TODO: should calculate new column as well
                                  [ast column]
                                  (if newlines

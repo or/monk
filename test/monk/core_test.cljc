@@ -410,6 +410,14 @@
     | #_key
     | :another :value}"
 
+    ; chained discard forms
+    "{#_#_#_:foo 1 2}"
+
+    "{#_#_ #_ :foo 1 2}"
+
+    "{#_#_#_#_:foo 1
+      :bar 2}"
+
     ;; TODO: smart discard positioning
     ;; "{:key :value
     ;; | #_:key2 :#_2
