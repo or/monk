@@ -71,6 +71,13 @@
    [(paired-element* 0 0 context)
     state]))
 
+(defn- user-linebreak?
+  [ast]
+  (let [left-node (z/left ast)]
+    (and (ast/is-whitespace? left-node)
+         (some? (z/left left-node))
+         (str/includes? (second (z/node left-node)) "\n"))))
+
 (defformatter vector-form
   ([{:keys [ast]}]
    (ast/is-vector? ast))
@@ -78,16 +85,12 @@
   ([{:keys [ast
             index
             require-linebreaks?]} state]
-   (let [left-node (z/left ast)
-         user-linebreak? (and (ast/is-whitespace? left-node)
-                              (some? (z/left left-node))
-                              (str/includes? (second (z/node left-node)) "\n"))]
-     [(cond
-        (zero? index) [0 0]
-        require-linebreaks? [1 0]
-        user-linebreak? [:keep-existing 0]
-        :else [0 1])
-      state])))
+   [(cond
+      (zero? index) [0 0]
+      require-linebreaks? [1 0]
+      (user-linebreak? ast) [:keep-existing 0]
+      :else [0 1])
+    state]))
 
 (defformatter ns-block-form
   ([{:keys [ast
@@ -352,7 +355,8 @@
   ([{:keys [ast]}]
    (ast/is-list? ast))
 
-  ([{:keys [index
+  ([{:keys [ast
+            index
             require-linebreaks?]}
     state]
    [(cond
@@ -360,6 +364,7 @@
       require-linebreaks? (if (= 1 index)
                             [0 1]
                             [1 :first-arg])
+      (user-linebreak? ast) [:keep-existing :first-arg]
       :else [0 1])
     state]))
 

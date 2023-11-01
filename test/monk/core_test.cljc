@@ -348,6 +348,10 @@
     ; function call
     "(some-function arg1 arg2 arg3)"
 
+    "(some-function arg1 arg2
+    |
+    |               arg3)"
+
     "(some-function arg1
     |               (do
     |                 (something)
