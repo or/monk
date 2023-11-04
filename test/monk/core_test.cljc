@@ -1,25 +1,19 @@
 (ns monk.core-test
   (:require
-   [clojure.string :as str]
    [clojure.test :refer [are deftest]]
-   [monk.core :as sut]))
-
-(defn- prepare-str
-  [s]
-  (->> (str/split s #"\n")
-       (map #(str/replace % #"^ *[\\|]" ""))
-       (str/join "\n")))
+   [monk.core :as sut]
+   [monk.test-util :refer [prepare-str]]))
 
 (deftest debug-format-string
   (are [input]
-       (= (sut/format-string (prepare-str input))
+       (= (sut/format-string (prepare-str input) {})
           (prepare-str input))
 
     ""))
 
 (deftest format-string
   (are [input]
-       (= (sut/format-string (prepare-str input))
+       (= (sut/format-string (prepare-str input) {})
           (prepare-str input))
 
     ; ns
@@ -751,8 +745,8 @@
     |
     |  (second-thing))"
 
-    "(are foo
-    |     bar
+    "(clojure.test/are foo
+    |                  bar
     |
     |  (first-thing)
     |
@@ -777,7 +771,7 @@
 
 (deftest debug-format-string-changes
   (are [input output]
-       (= (sut/format-string (prepare-str input))
+       (= (sut/format-string (prepare-str input) {})
           (prepare-str output))
 
     ""
@@ -785,7 +779,7 @@
 
 (deftest format-string-changes
   (are [input output]
-       (= (sut/format-string (prepare-str input))
+       (= (sut/format-string (prepare-str input) {})
           (prepare-str output))
 
     ; remove superfluous whitespace
@@ -1069,6 +1063,100 @@
     | ; another comment
     | arg1
     | arg2)"
+
+    ;
+    ))
+
+(deftest namespace-and-symbol-mapping
+  (are [input symbol-mapping]
+       (= (sut/format-string (prepare-str input) {:symbol-mapping symbol-mapping})
+          (prepare-str input))
+
+    ; require namespace aliases
+    "(ns foo.bar
+    |  (:require
+    |    [clojure.core :as cc]))
+    |
+    |(cc/defn function-name
+    |  [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2 arg3))"
+    {}
+
+    ; resolved to somewhere.else/defn-, so treated as a function
+    "(ns foo.bar
+    |  (:require
+    |    [somewhere.else :refer [defn-]]))
+    |
+    |(defn- function-name
+    |       [arg1 arg2 arg3]
+    |       (some-stuff arg1 arg2 arg3))"
+    {}
+
+    ; resolved to foo.bar/defn2, which is aliased to clojure.core/defn
+    "(ns foo.bar
+    |  (:use
+    |    [another.one]
+    |    [foo.bar :only [defn2]]
+    |    [some.namespace]))
+    |
+    |(defn2 function-name
+    |  [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2 arg3))"
+    {'foo.bar/defn2 'clojure.core/defn}
+
+    ; NOT resolved to foo.bar/defn2, because it is excluded,
+    ; so the mapping is ignored
+    "(ns foo.bar
+    |  (:use
+    |    [another.one]
+    |    [foo.bar :exclude [defn2]]
+    |    [some.namespace]))
+    |
+    |(defn2 function-name
+    |       [arg1 arg2 arg3]
+    |       (some-stuff arg1 arg2 arg3))"
+    {'foo.bar/defn2 'clojure.core/defn}
+
+    ; resolved to some.namespace/defn, because it is in the mapping,
+    ; which makes it behave like clojure.core/do
+    "(ns foo.bar
+    |  (:use
+    |    [another.one]
+    |    [foo.bar]
+    |    [some.namespace]))
+    |
+    |(defn
+    |  function-name
+    |  [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2 arg3))"
+    {'some.namespace/defn 'clojure.core/do}
+
+    ; resolved to some.namespace/defn, as some.namespace takes
+    ; precedence over another.one, so it behaves like clojure.core/do,
+    ; not like clojure.core/->
+    "(ns foo.bar
+    |  (:use
+    |    [another.one]
+    |    [foo.bar]
+    |    [some.namespace]))
+    |
+    |(defn
+    |  function-name
+    |  [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2 arg3))"
+    {'some.namespace/defn 'clojure.core/do
+     'another.one/defn 'clojure.core/as->}
+
+    ; require with :refer :all should behave pretty much like a :use
+    "(ns foo.bar
+    |  (:require
+    |    [some.namespace :refer :all]))
+    |
+    |(defn
+    |  function-name
+    |  [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2 arg3))"
+    {'some.namespace/defn 'clojure.core/do}
 
     ;
     ))

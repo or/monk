@@ -50,11 +50,52 @@
     (and (-> ast first (= :keyword))
          (-> ast second (subs 1) keyword keywords))))
 
+(defn- fully-qualified-symbol
+  [s {:keys [require use]} symbol-mapping]
+  (let [chunks (str/split s #"/" 2)
+        [sym-ns sym-name] (if (= (count chunks) 2)
+                            chunks
+                            [nil (first chunks)])
+        qualified-symbol (or (and sym-ns
+                                  (symbol (get-in require [:aliases sym-ns] sym-ns) sym-name))
+
+                             (get-in require [:refer sym-name])
+
+                             (loop [[use-spec & rest] use]
+                               (when use-spec
+                                 (let [[use-namespace {:keys [only exclude]}] use-spec
+                                       resolved-symbol (symbol use-namespace sym-name)]
+                                   (cond
+                                     (get only sym-name) resolved-symbol
+                                     (get exclude sym-name) (recur rest)
+                                     (get symbol-mapping resolved-symbol) resolved-symbol
+                                     :else (recur rest)))))
+
+                             (loop [[refer-all-namespace & rest] (:refer-all require)]
+                               (when refer-all-namespace
+                                 (let [resolved-symbol (symbol refer-all-namespace sym-name)]
+                                   (cond
+                                     (get symbol-mapping resolved-symbol) resolved-symbol
+                                     :else (recur rest)))))
+
+                             (symbol "clojure.core" sym-name))]
+    (get symbol-mapping qualified-symbol qualified-symbol)))
+
+(defn- symbol-matches?
+  [s symbols ns-map symbol-mapping]
+  (or (when-not (str/includes? s "/")
+        (let [naive-symbol (symbol s)]
+          (when (get symbols naive-symbol)
+            naive-symbol)))
+      (let [qualified-symbol (fully-qualified-symbol s ns-map symbol-mapping)]
+        (when (get symbols qualified-symbol)
+          qualified-symbol))))
+
 (defn is-particular-symbol?
-  [ast symbols]
+  [ast symbols ns-map symbol-mapping]
   (let [ast (unpack ast)]
     (and (-> ast first (= :symbol))
-         (-> ast second symbol symbols))))
+         (-> ast second (symbol-matches? symbols ns-map symbol-mapping)))))
 
 (defn is-top-level?
   [ast]
@@ -191,4 +232,4 @@
   [ast]
   (let [previous (left-relevant ast)]
     (and (is-discard? previous)
-         (some-> previous z/down (is-particular-symbol? #{'no-monk '!})))))
+         (some-> previous z/down (is-particular-symbol? #{'no-monk '!} nil nil)))))

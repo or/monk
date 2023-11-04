@@ -62,12 +62,12 @@
     (assoc context :ast new-ast)))
 
 (defn refactorable?
-  [{:keys [ast exempt?]}]
+  [{:keys [ast exempt? ns-map symbol-mapping]}]
   ; TODO: needs to be more accurate
   (and (let [first-child (z/down ast)
              first-parent-sibling (z/leftmost ast)]
          (and (ast/is-list? ast)
               (ast/is-particular-keyword? first-child ns-block-keywords)
-              (ast/is-particular-symbol? first-parent-sibling #{'ns})))
+              (ast/is-particular-symbol? first-parent-sibling #{'clojure.core/ns} ns-map symbol-mapping)))
        (not exempt?)
        (not (ast/is-exempt-form? ast))))

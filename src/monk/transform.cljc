@@ -4,6 +4,7 @@
    [clojure.zip :as z]
    [monk.ast :as ast]
    [monk.formatter :as formatter]
+   [monk.namespace :as namespace]
    [monk.refactor.doc-string :as doc-string]
    [monk.refactor.metadata :as metadata]
    [monk.refactor.ns-block :as ns-block]))
@@ -95,12 +96,13 @@
                                          (inc new-index)
                                          new-index))
                                      current-index)
-                        child-context {:ast child-ast
-                                       :parent context
-                                       :index current-index
-                                       :first-sibling first-child
-                                       :last-sibling last-sibling
-                                       :effective? effective?}
+                        child-context (merge context
+                                             {:ast child-ast
+                                              :parent context
+                                              :index current-index
+                                              :first-sibling first-child
+                                              :last-sibling last-sibling
+                                              :effective? effective?})
                         transformed-child (:ast (transform* child-context))
                         transformed-child (z/replace transformed-child (with-meta (z/node transformed-child) child-context))
                         next-child (ast/right-relevant transformed-child)]
@@ -293,8 +295,10 @@
                                process-comments)))))
 
 (defn transform
-  [ast]
-  (:ast (transform* {:ast ast})))
+  [ast symbol-mapping]
+  (:ast (transform* {:ns-map (namespace/build-alias-map ast)
+                     :ast ast
+                     :symbol-mapping symbol-mapping})))
 
 (def ^:private element-widths
   {:code [0 0]
