@@ -376,6 +376,25 @@
     | line break\"
     |               \"arg3\")"
 
+    ; function calls with other expressions instead of a symbol
+    "((fnil foo 0) arg1 arg2 arg3)"
+
+    "((fnil (fnil foo 0) 0) (arg1 :foo)
+    |                       (arg2 1)
+    |                       (arg3 2))"
+
+    "((do
+    |   (fnil foo 0)) arg1
+    |                 arg2
+    |                 arg3)"
+
+    "({:foo :bar} arg1 arg2 arg3)"
+
+    "({:foo :bar
+    |  :bar :foo} arg1
+    |             arg2
+    |             arg3)"
+
     ; comments
     "(do
     |  ; a comment for the next line
