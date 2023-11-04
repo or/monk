@@ -398,8 +398,13 @@
     |  (still-more-stuff))"
 
     "(some-function ; a comment
-    |               arg1
-    |               arg2)"
+    | arg1
+    | arg2)"
+
+    "(some-function ; a comment
+    | ; another comment
+    | arg1
+    | arg2)"
 
     ; comments as the last children
     "(do
@@ -411,10 +416,28 @@
     "(; a comment
     | )"
 
+    ; shouldn't turn comments into trailing comments
+    "(some-function
+    | ; a comment
+    | ; another comment
+    | arg1
+    | arg2)"
+
     "; top level comment
     |(ns some-namespace)
     |
     |; top level comment at the end"
+
+    "(do
+    |  ; a comment for the next line
+    |  (some-stuff) ; trailing comment
+    |  (some-more)
+    |  (still-more-stuff) ; more
+    | )"
+
+    "{:foo :bar ; trailing comment
+    | ; next line comment
+    | }"
 
     ; discarded forms
     "(foobar #_arg1 arg2 arg3)"
@@ -1018,6 +1041,15 @@
     | 3 4 ]"
     "[1 2
     | 3 4]"
+
+    "(some-function ; a comment
+    |               ; another comment
+    | arg1
+    | arg2)"
+    "(some-function ; a comment
+    | ; another comment
+    | arg1
+    | arg2)"
 
     ;
     ))

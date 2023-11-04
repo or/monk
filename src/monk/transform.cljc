@@ -113,9 +113,19 @@
                       (z/up transformed-child))))]
     (assoc context :ast new-ast)))
 
+(defn- is-trailing-comment?
+  [ast]
+  (let [left-ast (z/left ast)]
+    (and (ast/is-whitespace? left-ast)
+         (ast/is-comment? ast)
+         (-> left-ast z/node second (str/includes? "\n") not))))
+
 (defn- insert-spaces-left
   [ast newlines spaces]
-  (let [left-ast (z/left ast)]
+  (let [left-ast (z/left ast)
+        newlines (if (is-trailing-comment? ast)
+                   0
+                   newlines)]
     (if (ast/is-whitespace? left-ast)
       (z/right (z/replace left-ast (ast/with-whitespace-meta (z/node left-ast) newlines spaces)))
       (z/insert-left ast (ast/whitespace-node newlines spaces)))))
@@ -193,28 +203,35 @@
 (defn- align-trailing-comments
   [first-comment]
   (let [is-top-level-child? (some-> first-comment z/up ast/is-top-level?)
-        last-whitespace-node (some->> first-comment
-                                      (iterate z/left)
-                                      (take-while some?)
-                                      (filter ast/is-whitespace?)
-                                      (filter (comp meta z/node))
-                                      first
-                                      z/node)
-        {:keys [newlines]} (meta last-whitespace-node)
-        last-whitespace-node (cond
-                               is-top-level-child? nil
+        last-newline-node (some->> first-comment
+                                   (iterate z/left)
+                                   (take-while some?)
+                                   (map z/node)
+                                   (filter ast/is-whitespace?)
+                                   (filter #(some-> % second (str/includes? "\n")))
+                                   (filter meta)
+                                   first)
+        {:keys [newlines]} (meta last-newline-node)
+        last-newline-node (cond
+                            is-top-level-child? nil
 
-                               (and newlines
-                                    (not= newlines 0))
-                               (with-meta [:whitespace ""]
-                                          {:newlines :keep-existing
-                                           :spaces :first-arg})
+                            (and (nil? last-newline-node)
+                                 (ast/left-relevant first-comment))
+                            (with-meta [:whitespace "\n"]
+                                       {:newlines 1
+                                        :spaces :previous-arg})
 
-                               :else last-whitespace-node)]
+                            (and newlines
+                                 (not= newlines 0))
+                            (with-meta [:whitespace ""]
+                                       {:newlines :keep-existing
+                                        :spaces :first-arg})
+
+                            :else last-newline-node)]
     (-> first-comment
         (cond->
           is-top-level-child? (insert-spaces-left 2 0))
-        (align-comments last-whitespace-node)
+        (align-comments last-newline-node)
         (cond->
           (not is-top-level-child?) (insert-spaces-right 1 0)))))
 
@@ -226,7 +243,8 @@
                   (let [[new-child
                          new-first-comment] (cond
                                               (and (not first-comment)
-                                                   (ast/is-comment? child)) [child child]
+                                                   (ast/is-comment? child)
+                                                   (not (is-trailing-comment? child))) [child child]
 
                                               (and first-comment
                                                    (ast/is-whitespace? child)
@@ -243,9 +261,11 @@
                         next-child (z/right new-child)]
                     (if next-child
                       (recur next-child new-first-comment)
-                      (z/up (if new-first-comment
-                              (align-trailing-comments new-first-comment)
-                              new-child)))))]
+                      (z/up (cond
+                              (and (ast/is-whitespace? child)
+                                   (some-> child z/left is-trailing-comment?)) (insert-spaces-right (z/left child) 1 0)
+                              new-first-comment (align-trailing-comments new-first-comment)
+                              :else new-child)))))]
     (assoc context :ast new-ast)))
 
 (defn- traversible?
@@ -310,6 +330,22 @@
    :fn [1 0]
    :eval [2 0]})
 
+(defn- find-column-after-most-recent-newline
+  [ast]
+  (let [most-recent-newline-node (some->> ast
+                                          z/left
+                                          (iterate z/left)
+                                          (take-while some?)
+                                          (map z/node)
+                                          (filter ast/is-whitespace?)
+                                          (filter #(some-> % second (str/includes? "\n")))
+                                          first)]
+    (some-> most-recent-newline-node
+            second
+            (str/split #"\n")
+            last
+            count)))
+
 (defn concretize-whitespace*
   [ast base-indentation arg-columns column keep-original-spacing?]
   (let [node (z/node ast)
@@ -326,7 +362,12 @@
         first-child-in-discard-form? (and parent-is-discard?
                                           (or (nil? (ast/left-relevant ast))
                                               sibling-is-discard?))
-        doc-string? (some-> node meta :state :doc-string?)]
+        doc-string? (some-> node meta :state :doc-string?)
+        follows-trailing-comment? (and (or (some-> ast z/left is-trailing-comment?)
+                                           (some-> ast z/left z/left is-trailing-comment?))
+                                       (or (not newlines)
+                                           (= newlines :keep-existing)
+                                           (zero? newlines)))]
     (cond
       (ast/is-whitespace? ast) (if (or new-keep-original-spacing?
                                        first-child-in-discard-form?)
@@ -334,16 +375,37 @@
                                  [ast column]
                                  (if newlines
                                    (let [newlines (cond
+                                                    follows-trailing-comment? 1
+
                                                     (= newlines :keep-existing) (max 1 (count (re-seq #"\n" (second node))))
+
                                                     (and (= spaces :first-arg)
-                                                         (< (count arg-columns) 3)) 0
+                                                         (< (count arg-columns) 2)) 0
+
                                                     :else newlines)
+                                         would-turn-comment-into-trailing-comment? (and (zero? newlines)
+                                                                                        (some-> ast z/right ast/is-comment?)
+                                                                                        (some-> ast-rest first (str/includes? "\n")))
+                                         newlines (if would-turn-comment-into-trailing-comment?
+                                                    1
+                                                    newlines)
                                          spaces (cond
-                                                  (= spaces :first-arg) (if (< (count arg-columns) 3)
+                                                  follows-trailing-comment? (or (last arg-columns) 0)
+
+                                                  (= spaces :first-arg) (if (< (count arg-columns) 2)
                                                                           1
-                                                                          (nth arg-columns 2))
-                                                  (= spaces :previous-arg) (last arg-columns)
+                                                                          (nth arg-columns 1))
+
+                                                  would-turn-comment-into-trailing-comment? (or (find-column-after-most-recent-newline ast)
+                                                                                                (first arg-columns)
+                                                                                                base-indentation)
+
+                                                  (= spaces :previous-arg) (or (find-column-after-most-recent-newline ast)
+                                                                               (first arg-columns)
+                                                                               base-indentation)
+
                                                   (pos? newlines) (+ base-indentation spaces)
+
                                                   :else spaces)]
                                      [(z/replace ast
                                                  [:whitespace (apply str (concat (repeat newlines "\n")
@@ -353,7 +415,9 @@
                                         (+ column spaces))])
                                    ;; TODO: no metadata on a previous whitespace node
                                    #_[ast (-> ast-rest first (str/split #"\n") last count)]
-                                   [(z/replace ast [:whitespace ""]) column]))
+                                   (if (some-> ast z/right is-trailing-comment?)
+                                     [(z/replace ast [:whitespace " "]) (+ column 1)]
+                                     [(z/replace ast [:whitespace ""]) column])))
 
       (and (not new-keep-original-spacing?)
            doc-string?) (let [new-ast (doc-string/refactor ast column)]
@@ -383,11 +447,14 @@
                      arg-columns []]
                 (let [[new-child
                        new-column] (concretize-whitespace* child new-base-indentation arg-columns current-column new-keep-original-spacing?)
+                      new-arg-columns (cond-> arg-columns
+                                        (not (or (ast/is-whitespace? child)
+                                                 (is-trailing-comment? child))) (conj current-column))
                       next-child (z/right new-child)]
                   (if next-child
-                    (recur next-child new-column (conj arg-columns current-column))
-                    [(z/up new-child) new-column])))
-              [ast new-column]))))
+                    (recur next-child new-column new-arg-columns)
+                    [(z/up new-child) (+ new-column post)])))
+              [ast (+ new-column post)]))))
 
 (defn concretize-whitespace
   [ast]
