@@ -3,6 +3,7 @@
    [clojure.java.io :as io]
    [clojure.string :as str]
    [clojure.tools.cli :as cli]
+   [monk.config :as config]
    [monk.tool :as tool])
   (:gen-class))
 
@@ -45,6 +46,7 @@
 
 (defn -main [& args]
   (let [parsed-opts (cli/parse-opts args (cli-options default-cli-options))
+        config (config/load-from-file)
         [cmd & paths] (:arguments parsed-opts)
         options (:options parsed-opts)]
     (when (:errors parsed-opts)
@@ -61,6 +63,6 @@
                            (abort "Unknown command:" cmd))]
               (binding [tool/*no-output* (:quiet? options)
                         tool/*verbose* (:verbose? options)]
-                (action paths options))
+                (action paths (assoc options :symbol-mapping (:format-as config))))
               (when (:parallel? options)
                 (shutdown-agents))))))
