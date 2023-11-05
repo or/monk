@@ -408,3 +408,80 @@
            (ast/is-string? ast)
            (not seen-body?)) (assoc :doc-string-index index
                                     :doc-string? true))]))
+
+(defformatter deftype-form
+  ([{:keys [ast first-child ns-map symbol-mapping]}]
+   (and (ast/is-list? ast)
+        (ast/is-particular-symbol? first-child #{'clojure.core/deftype} ns-map symbol-mapping)))
+
+  ([{:keys [ast index]}
+    {:keys [seen-args?]
+     :as state}]
+   ; TODO: this needs more logic for the metadata
+   (let [following-method-definition? (some-> ast ast/left-relevant ast/is-list?)]
+     [(cond
+        (zero? index) [0 0]
+        (and seen-args?
+             following-method-definition?) [2 1]
+        seen-args? [1 1]
+        :else [0 1])
+      (cond-> state
+        (and (pos? index)
+             ; type name?
+             (or (ast/is-symbol? ast)
+                 ; TODO: check must be smart enough to look inside
+                 (ast/is-metadata? ast))) (assoc :seen-name? true)
+
+        (and (pos? index)
+             (not seen-args?)
+             ; args?
+             ; TODO: also needs a metadata check, but it must be smart enough to look inside
+             (ast/is-vector? ast)) (assoc :seen-args? true))])))
+
+(defformatter extend-protocol-form
+  ([{:keys [ast first-child ns-map symbol-mapping]}]
+   (and (ast/is-list? ast)
+        (ast/is-particular-symbol? first-child #{'clojure.core/extend-protocol
+                                                 'clojure.core/extend-type} ns-map symbol-mapping)))
+
+  ([{:keys [ast index]}
+    {:keys [seen-name?]
+     :as state}]
+   ; TODO: this needs more logic for the metadata
+   (let [following-method-definition? (some-> ast ast/left-relevant ast/is-list?)]
+     [(cond
+        (zero? index) [0 0]
+        (and seen-name?
+             following-method-definition?) [2 1]
+        seen-name? [1 1]
+        :else [0 1])
+      (cond-> state
+        (and (pos? index)
+             (not seen-name?)
+             ; type name?
+             (or (ast/is-symbol? ast)
+                 ; TODO: check must be smart enough to look inside
+                 (ast/is-metadata? ast))) (assoc :seen-name? true))])))
+
+(defformatter protocol-method-definition
+  ([{:keys [ast parent ns-map symbol-mapping]}]
+   (and (ast/is-list? ast)
+        (and (ast/is-list? ast)
+             (ast/is-particular-symbol? (:first-child parent)
+                                        #{'clojure.core/deftype
+                                          'clojure.core/extend-protocol
+                                          'clojure.core/extend-type} ns-map symbol-mapping))))
+
+  ([{:keys [ast index]}
+    {:keys [seen-args?]
+     :as state}]
+   [(cond
+      (zero? index) [0 0]
+      seen-args? [1 0]
+      :else [0 1])
+    (cond-> state
+      (and (pos? index)
+           (not seen-args?)
+           ; args?
+           ; TODO: also needs a metadata check, but it must be smart enough to look inside
+           (ast/is-vector? ast)) (assoc :seen-args? true))]))

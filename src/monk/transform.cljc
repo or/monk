@@ -20,6 +20,9 @@
    formatter/letfn-bindings
    formatter/letfn-binding-function
    formatter/defprotocol-form
+   formatter/deftype-form
+   formatter/extend-protocol-form
+   formatter/protocol-method-definition
    formatter/metadata-form
    formatter/map-form
    formatter/vector-form

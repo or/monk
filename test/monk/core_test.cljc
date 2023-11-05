@@ -739,6 +739,54 @@
     |  \"A doc-string.\"
     |  (method-name [this]))"
 
+    ; extend-protocol
+    "(extend-protocol Protocol
+    |  Protocol1
+    |  (method-name-1 [this]
+    |   (do-something))
+    |
+    |  (method-name-2 [this]
+    |   (do-something-else))
+    |
+    |  Protocol2
+    |  (method-name-3 [this]
+    |   (do-something))
+    |
+    |  (method-name-4 [this]
+    |   (do-something-else)))"
+
+    ; deftype
+    "(deftype Type [arg1 arg2]
+    |  Protocol1
+    |  (method-name-1 [this]
+    |   (do-something))
+    |
+    |  (method-name-2 [this]
+    |   (do-something-else))
+    |
+    |  Protocol2
+    |  (method-name-3 [this]
+    |   (do-something))
+    |
+    |  (method-name-4 [this]
+    |   (do-something-else)))"
+
+    ; extend-type
+    "(extend-type Type
+    |  Protocol1
+    |  (method-name-1 [this]
+    |   (do-something))
+    |
+    |  (method-name-2 [this]
+    |   (do-something-else))
+    |
+    |  Protocol2
+    |  (method-name-3 [this]
+    |   (do-something))
+    |
+    |  (method-name-4 [this]
+    |   (do-something-else)))"
+
     ; block forms with extra line breaks
     "(do
     |  (first-thing)
