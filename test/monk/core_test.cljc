@@ -452,6 +452,19 @@
     | ; next line comment
     | }"
 
+    ; newlines between comments are preserved, because
+    ; block commenting out in, for instance, Emacs will
+    ; cause such blank lines, and they shouldn't be removed
+    "(clojure.test/are foo
+    |                  bar
+    |  1
+    |  2
+    |  ; foo
+    |
+    |  ; bar
+    |  3
+    |  4)"
+
     ; discarded forms
     "(foobar #_arg1 arg2 arg3)"
 

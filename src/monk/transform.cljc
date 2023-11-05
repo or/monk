@@ -195,7 +195,7 @@
 
                     (= ast first-comment) [ast false]
 
-                    (ast/is-comment? ast) [(insert-spaces-left ast 1 :previous-arg) false]
+                    (ast/is-comment? ast) [(insert-spaces-left ast :keep-existing :previous-arg) false]
 
                     :else [(insert-spaces-left ast 1 :previous-arg) true])
           next-ast (ast/right-without new-ast #{:whitespace})]
