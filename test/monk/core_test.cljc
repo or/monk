@@ -422,8 +422,8 @@
     ; comments as the last children
     "(do
     |  (something)
-    |  ; comment
-    |  ; comment2
+    | ; comment
+    | ; comment2
     | )"
 
     "(; a comment

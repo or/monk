@@ -229,7 +229,7 @@
                                  (not= newlines 0))
                             (with-meta [:whitespace ""]
                                        {:newlines :keep-existing
-                                        :spaces :first-arg})
+                                        :spaces 0})
 
                             :else last-newline-node)]
     (-> first-comment
