@@ -72,7 +72,7 @@
   (cond
     (zero? index) [0 0]
     (< index num-args) [0 1]
-    (even? (- index num-args)) [1 first-element-indentation]
+    (even? (- index num-args)) [:keep-existing first-element-indentation]
     :else [0 1]))
 
 (defformatter map-form
