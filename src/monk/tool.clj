@@ -76,11 +76,15 @@
       (warn path "has incorrect formatting")
       (println diff))))
 
+(def ^:dynamic *profiling*
+  false)
+
 (defn- exit [counts]
-  (when-not (zero? (:error counts 0))
-    (System/exit 2))
-  (when-not (zero? (:incorrect counts 0))
-    (System/exit 1)))
+  (when-not *profiling*
+    (when-not (zero? (:error counts 0))
+      (System/exit 2))
+    (when-not (zero? (:incorrect counts 0))
+      (System/exit 1))))
 
 (defn- print-final-count [counts]
   (let [error (:error counts 0)

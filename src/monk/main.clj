@@ -36,7 +36,8 @@
   (binding [*out* *err*]
     (when (seq msg)
       (apply println msg))
-    (System/exit 1)))
+    (when-not tool/*profiling*
+      (System/exit 1))))
 
 (defn- print-help [summary]
   (println "Usage:")
