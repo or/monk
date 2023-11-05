@@ -1,0 +1,1 @@
+{:format-as {monk.macro/defformatter clojure.core/defn}}
