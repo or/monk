@@ -87,9 +87,7 @@
   ([{:keys [ast]}]
    (ast/is-vector? ast))
 
-  ([{:keys [ast
-            index
-            require-linebreaks?]} state]
+  ([{:keys [ast index require-linebreaks?]} state]
    [(cond
       (zero? index) [0 0]
       require-linebreaks? [1 0]
@@ -98,11 +96,7 @@
     state]))
 
 (defformatter ns-block-form
-  ([{:keys [ast
-            first-child
-            first-sibling
-            ns-map
-            symbol-mapping]}]
+  ([{:keys [ast first-child first-sibling ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
         (ast/is-particular-keyword? first-child #{:require :import :use})
         (ast/is-particular-symbol? first-sibling #{'clojure.core/ns} ns-map symbol-mapping)))
@@ -114,28 +108,17 @@
     state]))
 
 (defn- fn-supporting-multi-arity-form?
-  [{:keys [ast
-           first-child
-           ns-map
-           symbol-mapping]}]
+  [{:keys [ast first-child ns-map symbol-mapping]}]
   (and (ast/is-list? ast)
        (ast/is-particular-symbol? first-child #{'clojure.core/defn 'clojure.core/defn- 'clojure.core/fn} ns-map symbol-mapping)))
 
 (defformatter defn-form
-  ([{:keys [ast
-            first-child
-            ns-map
-            symbol-mapping]}]
+  ([{:keys [ast first-child ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
         (ast/is-particular-symbol? first-child #{'clojure.core/defn 'clojure.core/defn-} ns-map symbol-mapping)))
 
-  ([{:keys [ast
-            index]}
-    {:keys [seen-name?
-            seen-args?
-            seen-multi-arity?
-            seen-body?
-            doc-string-index]
+  ([{:keys [ast index]}
+    {:keys [seen-name? seen-args? seen-multi-arity? seen-body? doc-string-index]
      :as state}]
    ; TODO: this needs more logic for the metadata
    [(cond
@@ -183,8 +166,7 @@
                                     :doc-string? true))]))
 
 (defformatter defn-multi-arity-function
-  ([{:keys [ast parent
-            first-child]}]
+  ([{:keys [ast parent first-child]}]
    (and (ast/is-list? ast)
         (or (ast/is-vector? first-child)
             ; TODO: check must be smart enough to look inside
@@ -198,17 +180,12 @@
     state]))
 
 (defformatter def-form
-  ([{:keys [ast
-            first-child
-            ns-map
-            symbol-mapping]}]
+  ([{:keys [ast first-child ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
         (ast/is-particular-symbol? first-child #{'clojure.core/def} ns-map symbol-mapping)))
 
   ([{:keys [ast index]}
-    {:keys [seen-name?
-            seen-body?
-            doc-string-index]
+    {:keys [seen-name? seen-body? doc-string-index]
      :as state}]
    ; TODO: this needs more logic for the metadata
    (let [likely-var-name? (or (ast/is-symbol? ast)
@@ -236,17 +213,12 @@
                                       :doc-string? true))])))
 
 (defformatter fn-form
-  ([{:keys [ast
-            first-child
-            ns-map
-            symbol-mapping]}]
+  ([{:keys [ast first-child ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
         (ast/is-particular-symbol? first-child #{'clojure.core/fn} ns-map symbol-mapping)))
 
   ([{:keys [ast index]}
-    {:keys [seen-name?
-            seen-args?
-            seen-multi-arity?]
+    {:keys [seen-name? seen-args? seen-multi-arity?]
      :as state}]
    ; TODO: this needs more logic for the metadata
    (let [multi-arity-block? (and (ast/is-list? ast)
@@ -280,13 +252,7 @@
              multi-arity-block?) (assoc :seen-multi-arity? true))])))
 
 (defformatter let-like-bindings
-  ([{:keys [ast
-            index
-            last-sibling
-            first-sibling
-            parent
-            ns-map
-            symbol-mapping]}]
+  ([{:keys [ast index last-sibling first-sibling parent ns-map symbol-mapping]}]
    (or (and (ast/is-vector? ast)
             (ast/is-particular-symbol? first-sibling #{'clojure.core/let 'clojure.core/doseq 'clojure.core/loop 'clojure.core/for} ns-map symbol-mapping)
             (= index 1))
@@ -301,10 +267,7 @@
     state]))
 
 (defn- letfn-binding?
-  [{:keys [ast index
-           first-sibling
-           ns-map
-           symbol-mapping]}]
+  [{:keys [ast index first-sibling ns-map symbol-mapping]}]
   (and (or (ast/is-vector? ast)
            ; TODO: check must be smart enough to look inside
            (ast/is-metadata? ast))
@@ -331,10 +294,7 @@
     state]))
 
 (defformatter block-form
-  ([{:keys [ast
-            first-child
-            ns-map
-            symbol-mapping]}]
+  ([{:keys [ast first-child ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
         (ast/is-particular-symbol? first-child block-tokens ns-map symbol-mapping)))
 
@@ -347,10 +307,7 @@
       state])))
 
 (defformatter cond->-form
-  ([{:keys [ast
-            first-child
-            ns-map
-            symbol-mapping]}]
+  ([{:keys [ast first-child ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
         (ast/is-particular-symbol? first-child #{'clojure.core/cond-> 'clojure.core/cond->>} ns-map symbol-mapping)))
 
@@ -358,10 +315,7 @@
    [(paired-element* 2 1 context) state]))
 
 (defformatter cond-form
-  ([{:keys [ast
-            first-child
-            ns-map
-            symbol-mapping]}]
+  ([{:keys [ast first-child ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
         (ast/is-particular-symbol? first-child #{'clojure.core/cond} ns-map symbol-mapping)))
 
@@ -369,10 +323,7 @@
    [(paired-element* 1 1 context) state]))
 
 (defformatter case-form
-  ([{:keys [ast
-            first-child
-            ns-map
-            symbol-mapping]}]
+  ([{:keys [ast first-child ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
         (ast/is-particular-symbol? first-child #{'clojure.core/case} ns-map symbol-mapping)))
 
@@ -383,9 +334,7 @@
   ([{:keys [ast]}]
    (ast/is-list? ast))
 
-  ([{:keys [ast
-            index
-            require-linebreaks?]}
+  ([{:keys [ast index require-linebreaks?]}
     state]
    [(cond
       (zero? index) [0 0]
@@ -427,18 +376,12 @@
     state]))
 
 (defformatter defprotocol-form
-  ([{:keys [ast
-            first-child
-            ns-map
-            symbol-mapping]}]
+  ([{:keys [ast first-child ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
         (ast/is-particular-symbol? first-child #{'clojure.core/defprotocol} ns-map symbol-mapping)))
 
-  ([{:keys [ast
-            index]}
-    {:keys [seen-name?
-            seen-body?
-            doc-string-index]
+  ([{:keys [ast index]}
+    {:keys [seen-name? seen-body? doc-string-index]
      :as state}]
    ; TODO: this needs more logic for the metadata
    [(cond

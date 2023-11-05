@@ -69,8 +69,7 @@
 (declare transform*)
 
 (defn- transform-children
-  [{:keys [parent
-           ast]
+  [{:keys [ast parent]
     :as context}]
   (let [index-in-parent (:index context)
         exempt? (ast/is-exempt-form? ast)
