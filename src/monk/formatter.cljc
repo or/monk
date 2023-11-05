@@ -43,7 +43,7 @@
            user-linebreak?) [:keep-existing :first-arg]
       (<= index num-args) [0 1]
       user-linebreak? [:keep-existing 1]
-      :else [1 1])))
+      :else [:keep-existing 1])))
 
 (defformatter default
   ([_context]
