@@ -41,8 +41,10 @@
 
 (defn- print-help [summary]
   (println "Usage:")
-  (println (str \tab *command* " (check | fix) [PATHS...]"))
+  (println (str \tab *command* " (check | fix) [PATH] <[PATH]> <...> "))
   (println "Options:")
+  (println "  PATH  A path to a file or directory or '-' to read from STDIN and write to STDOUT")
+  (println)
   (println summary))
 
 (defn -main [& args]
