@@ -168,6 +168,16 @@
     |  (some-stuff foo)
     |  (more-stuff another))"
 
+    ; binding
+    "(binding [*foo* :foo]
+    |  (some-stuff)
+    |  (more-stuff))"
+
+    "(binding [*foo* :foo
+    |          *bar* :bar]
+    |  (some-stuff)
+    |  (more-stuff))"
+
     ; doseq
     "(doseq [index (range 100)]
     |  (some-stuff index)

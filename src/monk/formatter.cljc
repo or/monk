@@ -21,6 +21,7 @@
    'clojure.core/for 1
    'clojure.core/let 1
    'clojure.core/letfn 1
+   'clojure.core/binding 1
    'clojure.core/when 1
    'clojure.core/when-not 1
    'clojure.core/when-let 1
@@ -254,7 +255,9 @@
 (defformatter let-like-bindings
   ([{:keys [ast index last-sibling first-sibling parent ns-map symbol-mapping]}]
    (or (and (ast/is-vector? ast)
-            (ast/is-particular-symbol? first-sibling #{'clojure.core/let 'clojure.core/doseq 'clojure.core/loop 'clojure.core/for} ns-map symbol-mapping)
+            (ast/is-particular-symbol? first-sibling #{'clojure.core/let 'clojure.core/doseq
+                                                       'clojure.core/loop 'clojure.core/for
+                                                       'clojure.core/binding} ns-map symbol-mapping)
             (= index 1))
        (and (ast/is-vector? ast)
             (ast/is-particular-keyword? last-sibling #{:let})
