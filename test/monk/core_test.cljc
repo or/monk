@@ -136,6 +136,30 @@
     |  ([arg1 arg2 arg3]
     |   (body)))"
 
+    ; defmacro
+    "(defmacro macro-name
+    |  [arg1 arg2 arg3]
+    |  (some-stuff arg1 arg2)
+    |  (more-stuff arg3))"
+
+    "(defmacro macro-name
+    |  \"Some doc string
+    |
+    |    with
+    |    multiple lines.\"
+    |  [arg1 arg2]
+    |  (body))"
+
+    "(defmacro macro-name
+    |  ([arg1]
+    |   (body))
+    |
+    |  (^String [arg1 arg2]
+    |   (body))
+    |
+    |  ([arg1 arg2 arg3]
+    |   (body)))"
+
     ; def
     "(def var-name
     |  (some-stuff arg1 arg2))"

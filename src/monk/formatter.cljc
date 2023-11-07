@@ -111,12 +111,17 @@
 (defn- fn-supporting-multi-arity-form?
   [{:keys [ast first-child ns-map symbol-mapping]}]
   (and (ast/is-list? ast)
-       (ast/is-particular-symbol? first-child #{'clojure.core/defn 'clojure.core/defn- 'clojure.core/fn} ns-map symbol-mapping)))
+       (ast/is-particular-symbol? first-child #{'clojure.core/defn
+                                                'clojure.core/defn-
+                                                'clojure.core/fn
+                                                'clojure.core/defmacro} ns-map symbol-mapping)))
 
 (defformatter defn-form
   ([{:keys [ast first-child ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
-        (ast/is-particular-symbol? first-child #{'clojure.core/defn 'clojure.core/defn-} ns-map symbol-mapping)))
+        (ast/is-particular-symbol? first-child #{'clojure.core/defn
+                                                 'clojure.core/defn-
+                                                 'clojure.core/defmacro} ns-map symbol-mapping)))
 
   ([{:keys [ast index]}
     {:keys [seen-name? seen-args? seen-multi-arity? seen-body? doc-string-index]
