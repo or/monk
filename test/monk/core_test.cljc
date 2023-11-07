@@ -327,16 +327,38 @@
     |  something-truthy? (assoc :key :whatever)
     |  another? (assoc :key :whatever))"
 
+    "(cond-> some-map
+    |  something-truthy? (do
+    |                      (assoc :key :whatever))
+    |
+    |  another? (assoc :key :whatever))"
+
     ; cond
     "(cond
     |  something-truthy? :whatever
     |  another? :something-else
     |  :else (calculate-default))"
 
+    "(cond
+    |  something-truthy? (do
+    |                      :whatever)
+    |
+    |  another? :something-else
+    |
+    |  :else (calculate-default))"
+
     ; case
     "(case value
     |  value (assoc :key :whatever)
     |  another-value (assoc :key :whatever)
+    |  default-value)"
+
+    "(case value
+    |  value (assoc :key :whatever)
+    |
+    |  another-value (do
+    |                  (assoc :key :whatever))
+    |
     |  default-value)"
 
     ; function call
