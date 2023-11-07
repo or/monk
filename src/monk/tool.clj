@@ -120,12 +120,18 @@
 
 (defn- fix-one [options file]
   (try
-    (let [original (io/read-file file)
-          revised (str (monk/format-string original options) "\n")
-          changed? (not= original revised)]
-      (io/update-file file revised changed?)
-      (cond-> {:file file}
-        changed? (assoc :reformatted true)))
+    (let [original (io/read-file file)]
+      (try
+        (let [revised (str (monk/format-string original options) "\n")
+              changed? (not= original revised)]
+          (io/update-file file revised changed?)
+          (cond-> {:file file}
+            changed? (assoc :reformatted true)))
+        (catch Exception e
+          (when (= (type file) StdIO)
+            (io/update-file file original false))
+          {:file file
+           :exception e})))
     (catch Exception e
       {:file file
        :exception e})))
