@@ -19,24 +19,24 @@
     ; ns
     "(ns foo.bar
     |  (:require
-    |    [clojure.string :as str]))"
+    |   [clojure.string :as str]))"
 
     "(ns foo.bar
     |  (:import
-    |    [some.namespace Class1 Class2]))"
+    |   [some.namespace Class1 Class2]))"
 
     "(ns foo.bar
     |  (:require
-    |    [some.thing :as thing]
-    |    #?(:clj [clj.some.other :as other]
-    |       :cljs [cljs.some.other :as other])
-    |    #?@(:clj #_! [[clj.some.other :as other]
-    |                  [clj.some.other2 :as other2]]
-    |        :cljs [[cljs.some.other :as other]])))"
+    |   [some.thing :as thing]
+    |   #?(:clj [clj.some.other :as other]
+    |      :cljs [cljs.some.other :as other])
+    |   #?@(:clj #_! [[clj.some.other :as other]
+    |                 [clj.some.other2 :as other2]]
+    |       :cljs [[cljs.some.other :as other]])))"
 
     "(ns monk.main
     |  (:require
-    |    [clojure.java.io :as io])
+    |   [clojure.java.io :as io])
     |  (:gen-class))"
 
     ; map
@@ -1004,83 +1004,83 @@
     ; ns-block require sorting
     "(ns foobar
     |  (:require
-    |    [some.where :as where]
-    |    [some.what :as what]
-    |    a.b.c
-    |    [else.where :as foo]))"
+    |   [some.where :as where]
+    |   [some.what :as what]
+    |   a.b.c
+    |   [else.where :as foo]))"
     "(ns foobar
     |  (:require
-    |    a.b.c
-    |    [else.where :as foo]
-    |    [some.what :as what]
-    |    [some.where :as where]))"
+    |   a.b.c
+    |   [else.where :as foo]
+    |   [some.what :as what]
+    |   [some.where :as where]))"
 
     "(ns foobar
     |  (:require
-    |    [some.where :as where]
-    |    #_[a.b.c]
-    |    ; multiple
-    |    ; comments
-    |    ; for what
-    |    [some.what :as what]
-    |    ; comment for foo
-    |    [else.where :as foo]
+    |   [some.where :as where]
+    |   #_[a.b.c]
+    |   ; multiple
+    |   ; comments
+    |   ; for what
+    |   [some.what :as what]
+    |   ; comment for foo
+    |   [else.where :as foo]
     |))"
     "(ns foobar
     |  (:require
-    |    #_[a.b.c]
-    |    ; comment for foo
-    |    [else.where :as foo]
-    |    ; multiple
-    |    ; comments
-    |    ; for what
-    |    [some.what :as what]
-    |    [some.where :as where]))"
+    |   #_[a.b.c]
+    |   ; comment for foo
+    |   [else.where :as foo]
+    |   ; multiple
+    |   ; comments
+    |   ; for what
+    |   [some.what :as what]
+    |   [some.where :as where]))"
 
     "(ns foobar
     |  (:require
-    |    [some.where :as where]
-    |    #_[a.b.c]
-    |    ; multiple
-    |    ; comments
-    |    ; for what
-    |    [\"some.what\" :as what]
-    |    ; comment for foo
-    |    [else.where :as foo]
+    |   [some.where :as where]
+    |   #_[a.b.c]
+    |   ; multiple
+    |   ; comments
+    |   ; for what
+    |   [\"some.what\" :as what]
+    |   ; comment for foo
+    |   [else.where :as foo]
     |))"
     "(ns foobar
     |  (:require
-    |    ; multiple
-    |    ; comments
-    |    ; for what
-    |    [\"some.what\" :as what]
-    |    #_[a.b.c]
-    |    ; comment for foo
-    |    [else.where :as foo]
-    |    [some.where :as where]))"
+    |   ; multiple
+    |   ; comments
+    |   ; for what
+    |   [\"some.what\" :as what]
+    |   #_[a.b.c]
+    |   ; comment for foo
+    |   [else.where :as foo]
+    |   [some.where :as where]))"
 
     ; exempt forms should not be sorted
     "#_! (ns foobar
     |  (:require
-    |    [some.where :as where]
-    |    #_[a.b.c]
-    |    ; multiple
-    |    ; comments
-    |    ; for what
-    |    [\"some.what\" :as what]
-    |    ; comment for foo
-    |    [else.where :as foo]
+    |   [some.where :as where]
+    |   #_[a.b.c]
+    |   ; multiple
+    |   ; comments
+    |   ; for what
+    |   [\"some.what\" :as what]
+    |   ; comment for foo
+    |   [else.where :as foo]
     |))"
     "#_! (ns foobar
     |  (:require
-    |    [some.where :as where]
-    |    #_[a.b.c]
-    |    ; multiple
-    |    ; comments
-    |    ; for what
-    |    [\"some.what\" :as what]
-    |    ; comment for foo
-    |    [else.where :as foo]
+    |   [some.where :as where]
+    |   #_[a.b.c]
+    |   ; multiple
+    |   ; comments
+    |   ; for what
+    |   [\"some.what\" :as what]
+    |   ; comment for foo
+    |   [else.where :as foo]
     |))"
 
     "(ns foobar
@@ -1136,7 +1136,7 @@
     ; require namespace aliases
     "(ns foo.bar
     |  (:require
-    |    [clojure.core :as cc]))
+    |   [clojure.core :as cc]))
     |
     |(cc/defn function-name
     |  [arg1 arg2 arg3]
@@ -1146,7 +1146,7 @@
     ; resolved to somewhere.else/defn-, so treated as a function
     "(ns foo.bar
     |  (:require
-    |    [somewhere.else :refer [defn-]]))
+    |   [somewhere.else :refer [defn-]]))
     |
     |(defn- function-name
     |       [arg1 arg2 arg3]
@@ -1156,9 +1156,9 @@
     ; resolved to foo.bar/defn2, which is aliased to clojure.core/defn
     "(ns foo.bar
     |  (:use
-    |    [another.one]
-    |    [foo.bar :only [defn2]]
-    |    [some.namespace]))
+    |   [another.one]
+    |   [foo.bar :only [defn2]]
+    |   [some.namespace]))
     |
     |(defn2 function-name
     |  [arg1 arg2 arg3]
@@ -1169,9 +1169,9 @@
     ; so the mapping is ignored
     "(ns foo.bar
     |  (:use
-    |    [another.one]
-    |    [foo.bar :exclude [defn2]]
-    |    [some.namespace]))
+    |   [another.one]
+    |   [foo.bar :exclude [defn2]]
+    |   [some.namespace]))
     |
     |(defn2 function-name
     |       [arg1 arg2 arg3]
@@ -1182,9 +1182,9 @@
     ; which makes it behave like clojure.core/do
     "(ns foo.bar
     |  (:use
-    |    [another.one]
-    |    [foo.bar]
-    |    [some.namespace]))
+    |   [another.one]
+    |   [foo.bar]
+    |   [some.namespace]))
     |
     |(defn
     |  function-name
@@ -1197,9 +1197,9 @@
     ; not like clojure.core/->
     "(ns foo.bar
     |  (:use
-    |    [another.one]
-    |    [foo.bar]
-    |    [some.namespace]))
+    |   [another.one]
+    |   [foo.bar]
+    |   [some.namespace]))
     |
     |(defn
     |  function-name
@@ -1211,7 +1211,7 @@
     ; require with :refer :all should behave pretty much like a :use
     "(ns foo.bar
     |  (:require
-    |    [some.namespace :refer :all]))
+    |   [some.namespace :refer :all]))
     |
     |(defn
     |  function-name
