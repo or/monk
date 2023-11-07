@@ -3,22 +3,20 @@
    [clojure.stacktrace :as st]
    [monk.core :as monk]
    [monk.diff :as diff]
-   [monk.io :as io]))
+   [monk.io :as io])
+  (:import
+   [monk.io StdIO]))
 
 (def ^:dynamic *no-output*
   false)
 
-(def ^:dynamic *verbose*
+(def ^:dynamic *profiling*
   false)
 
 (defn- warn [& args]
   (when-not *no-output*
     (binding [*out* *err*]
       (apply println args))))
-
-(defn- trace [& args]
-  (when *verbose*
-    (apply warn args)))
 
 (defn- grep [re dir]
   (filter #(re-find re (io/relative-path % dir))
@@ -44,7 +42,6 @@
    :error 0})
 
 (defn- check-one [options file]
-  (trace "Processing file:" file)
   (let [status {:counts zero-counts
                 :file file}]
     (try
@@ -66,7 +63,8 @@
       (st/print-stack-trace ex))))
 
 (defn- print-file-status [status]
-  (let [path (:file status)]
+  (let [f (:file status)
+        path (io/path f)]
     (when-let [ex (:exception status)]
       (warn "Failed to format file:" path)
       (print-stack-trace ex))
@@ -75,9 +73,6 @@
     (when-let [diff (:diff status)]
       (warn path "has incorrect formatting")
       (println diff))))
-
-(def ^:dynamic *profiling*
-  false)
 
 (defn- exit [counts]
   (when-not *profiling*
@@ -124,7 +119,6 @@
     (exit counts)))
 
 (defn- fix-one [options file]
-  (trace "Processing file:" file)
   (try
     (let [original (io/read-file file)
           revised (str (monk/format-string original options) "\n")

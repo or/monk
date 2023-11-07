@@ -7,7 +7,8 @@
   (exists? [f])
   (directory? [f])
   (list-files [f])
-  (relative-path [f dir]))
+  (relative-path [f dir])
+  (path [f]))
 
 (extend-protocol FileEntity
   File
@@ -30,7 +31,10 @@
   (relative-path [f ^File dir]
     (-> (.toAbsolutePath (.toPath dir))
         (.relativize (.toAbsolutePath (.toPath f)))
-        (.toString))))
+        (.toString)))
+
+  (path [f]
+    (.getPath f)))
 
 (deftype StdIO [in out]
   FileEntity
@@ -52,6 +56,9 @@
     nil)
 
   (relative-path [_ _]
+    "STDIN")
+
+  (path [_]
     "STDIN"))
 
 (defn file-entity [path]

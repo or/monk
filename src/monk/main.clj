@@ -62,8 +62,7 @@
                            "check" tool/check
                            "fix" tool/fix
                            (abort "Unknown command:" cmd))]
-              (binding [tool/*no-output* (:quiet? options)
-                        tool/*verbose* (:verbose? options)]
+              (binding [tool/*no-output* (:quiet? options)]
                 (action paths (assoc options :symbol-mapping (:format-as config))))
               (when (:parallel? options)
                 (shutdown-agents))))))
