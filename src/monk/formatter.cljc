@@ -40,6 +40,8 @@
   (let [user-linebreak? (user-linebreak? ast)]
     (cond
       (zero? index) [0 0]
+      (and (= index 1)
+           (pos? num-args)) [0 1]
       (and (<= index num-args)
            user-linebreak?) [:keep-existing :first-arg]
       (<= index num-args) [0 1]
