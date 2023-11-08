@@ -32,8 +32,7 @@
    'clojure.core/->> 1
    'clojure.core/as-> 2
 
-   'clojure.test/deftest 1
-   'clojure.test/are 2})
+   'clojure.test/deftest 1})
 
 (defn- block-form*
   [num-args {:keys [ast index]}]
@@ -495,3 +494,35 @@
            ; args?
            ; TODO: also needs a metadata check, but it must be smart enough to look inside
            (ast/is-vector? ast)) (assoc :seen-args? true))]))
+
+(defformatter are-form
+  ([{:keys [ast first-child ns-map symbol-mapping]}]
+   (and (ast/is-list? ast)
+        (ast/is-particular-symbol? first-child #{'clojure.test/are} ns-map symbol-mapping)))
+
+  ([{:keys [ast index]}
+    {:keys [num-args]
+     :as state}]
+   (let [user-linebreak? (user-linebreak? ast)]
+     [(cond
+        (zero? index) [0 0]
+        (= index 1) [0 1]
+        (and (<= index 2)
+             user-linebreak?) [:keep-existing :first-arg]
+        (<= index 2) [0 1]
+        (and (not num-args)
+             user-linebreak?) [:keep-existing 1]
+        (and num-args
+             (< 1 num-args)
+             (< (+ 2 num-args) index)
+             (zero? (mod (- index 3 num-args)
+                         num-args))) [2 1]
+        (and num-args
+             (< 1 num-args)
+             (< (+ 2 num-args) index)
+             (pos? (mod (- index 3 num-args)
+                        num-args))) [1 1]
+        :else [:keep-existing 1])
+      (cond-> state
+        (and (= index 1)
+             (ast/is-vector? ast)) (assoc :num-args (count (filter ast/is-symbol? (z/node ast)))))])))

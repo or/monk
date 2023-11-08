@@ -29,6 +29,7 @@
    formatter/case-form
    formatter/cond-form
    formatter/cond->-form
+   formatter/are-form
    formatter/block-form
    formatter/function-form
    formatter/top-level-form

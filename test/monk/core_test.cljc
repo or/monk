@@ -891,6 +891,44 @@
        (= (sut/format-string (prepare-str input) {})
           (prepare-str output))
 
+    ; 'are' form with first argument being a vector of one argument
+    "(clojure.test/are
+    |  [a]
+    |                  (= a a)
+    |  1  2  3
+    |  4)"
+    "(clojure.test/are [a]
+    |                  (= a a)
+    |  1
+    |  2
+    |  3
+    |  4)"
+
+    ; 'are' form with first argument being a vector of two arguments
+    "(clojure.test/are [a b]
+    |                  (= (foobar a) b)
+    |  1
+    |  :foo
+    |  2
+    |  :bar
+    |  3
+    |  :and
+    |  4
+    |  :one-more)"
+    "(clojure.test/are [a b]
+    |                  (= (foobar a) b)
+    |  1
+    |  :foo
+    |
+    |  2
+    |  :bar
+    |
+    |  3
+    |  :and
+    |
+    |  4
+    |  :one-more)"
+
     ""
     ""))
 
