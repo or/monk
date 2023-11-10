@@ -97,6 +97,18 @@
       :else [0 1])
     state]))
 
+(defformatter set-form
+  ([{:keys [ast]}]
+   (ast/is-set? ast))
+
+  ([{:keys [ast index require-linebreaks?]} state]
+   [(cond
+      (zero? index) [0 0]
+      require-linebreaks? [1 0]
+      (user-linebreak? ast) [:keep-existing 0]
+      :else [0 1])
+    state]))
+
 (defformatter ns-block-form
   ([{:keys [ast first-child first-sibling ns-map symbol-mapping]}]
    (and (ast/is-list? ast)

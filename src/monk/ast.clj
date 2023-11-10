@@ -121,6 +121,10 @@
   [ast]
   (-> ast unpack first (= :vector)))
 
+(defn is-set?
+  [ast]
+  (-> ast unpack first (= :set)))
+
 (defn is-metadata?
   [ast]
   (-> ast unpack first (= :metadata)))

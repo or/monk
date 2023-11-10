@@ -26,6 +26,7 @@
    formatter/metadata-form
    formatter/map-form
    formatter/vector-form
+   formatter/set-form
    formatter/case-form
    formatter/cond-form
    formatter/cond->-form
