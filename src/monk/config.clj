@@ -6,8 +6,8 @@
 (defn- parent-dirs
   [^String root]
   (->> (.getAbsoluteFile (io/file root))
-       (iterate #(.getParentFile ^java.io.File %))
-       (take-while some?)))
+    (iterate #(.getParentFile ^java.io.File %))
+    (take-while some?)))
 
 (defn- find-config-file-in-dir
   ^java.io.File [^java.io.File dir]

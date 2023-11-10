@@ -13,16 +13,19 @@
 (def ^:dynamic *profiling*
   false)
 
-(defn- warn [& args]
+(defn- warn
+  [& args]
   (when-not *no-output*
     (binding [*out* *err*]
       (apply println args))))
 
-(defn- grep [re dir]
+(defn- grep
+  [re dir]
   (filter #(re-find re (io/relative-path % dir))
           (io/list-files dir)))
 
-(defn- find-files [f]
+(defn- find-files
+  [f]
   (let [f (io/file-entity f)]
     (when (io/exists? f)
       (if (io/directory? f)
@@ -41,28 +44,32 @@
    :incorrect 0
    :error 0})
 
-(defn- check-one [options file]
+(defn- check-one
+  [options file]
   (let [status {:counts zero-counts
                 :file file}]
-    (try
-      (let [original (io/read-file file)
-            revised (str (monk/format-string original options) "\n")]
-        (if (= original revised)
-          (assoc-in status [:counts :okay] 1)
-          (-> status
-              (assoc-in [:counts :incorrect] 1)
-              (assoc :diff (format-diff options file original revised)))))
-      (catch Exception ex
-        (-> status
-            (assoc-in [:counts :error] 1)
-            (assoc :exception ex))))))
+    (try (let [original (io/read-file file)
+               revised (str (monk/format-string original options) "\n")]
+           (if (= original revised)
+             (assoc-in status [:counts :okay] 1)
+             (-> status
+               (assoc-in [:counts :incorrect] 1)
+               (assoc :diff
+                      (format-diff options file original revised)))))
+         (catch Exception
+                ex
+                (-> status
+                  (assoc-in [:counts :error] 1)
+                  (assoc :exception ex))))))
 
-(defn- print-stack-trace [ex]
+(defn- print-stack-trace
+  [ex]
   (when-not *no-output*
     (binding [*out* *err*]
       (st/print-stack-trace ex))))
 
-(defn- print-file-status [status]
+(defn- print-file-status
+  [status]
   (let [f (:file status)
         path (io/path f)]
     (when-let [ex (:exception status)]
@@ -74,14 +81,16 @@
       (warn path "has incorrect formatting")
       (println diff))))
 
-(defn- exit [counts]
+(defn- exit
+  [counts]
   (when-not *profiling*
     (when-not (zero? (:error counts 0))
       (System/exit 2))
     (when-not (zero? (:incorrect counts 0))
       (System/exit 1))))
 
-(defn- print-final-count [counts]
+(defn- print-final-count
+  [counts]
   (let [error (:error counts 0)
         incorrect (:incorrect counts 0)]
     (when-not (zero? error)
@@ -109,34 +118,36 @@
                pmap
                map)
         counts (->> (set paths)
-                    (mapcat find-files)
-                    (map* (partial check-one options))
-                    (map (fn [status]
-                           (print-file-status status)
-                           (:counts status)))
-                    (reduce merge-counts))]
+                 (mapcat find-files)
+                 (map* (partial check-one options))
+                 (map (fn [status]
+                        (print-file-status status)
+                        (:counts status)))
+                 (reduce merge-counts))]
     (print-final-count counts)
     (exit counts)))
 
-(defn- fix-one [options file]
-  (try
-    (let [original (io/read-file file)]
-      (try
-        (let [revised (str (monk/format-string original options) "\n")
-              changed? (not= original revised)]
-          (io/update-file file revised changed?)
-          (cond-> {:file file}
-            changed? (assoc :reformatted true)))
-        (catch Exception e
-          (when (= (type file) StdIO)
-            (io/update-file file original false))
-          {:file file
-           :exception e})))
-    (catch Exception e
-      {:file file
-       :exception e})))
+(defn- fix-one
+  [options file]
+  (try (let [original (io/read-file file)]
+         (try (let [revised (str (monk/format-string original options) "\n")
+                    changed? (not= original revised)]
+                (io/update-file file revised changed?)
+                (cond-> {:file file}
+                  changed? (assoc :reformatted true)))
+              (catch Exception
+                     e
+                     (when (= (type file) StdIO)
+                       (io/update-file file original false))
+                     {:file file
+                      :exception e})))
+       (catch Exception
+              e
+              {:file file
+               :exception e})))
 
-(defn- recursively-find-files [paths]
+(defn- recursively-find-files
+  [paths]
   (mapcat find-files (set paths)))
 
 (defn fix
@@ -146,7 +157,6 @@
         map* (if (:parallel? options)
                pmap
                map)]
-    (dorun
-     (->> files
-          (map* (partial fix-one options))
-          (map print-file-status)))))
+    (dorun (->> files
+             (map* (partial fix-one options))
+             (map print-file-status)))))

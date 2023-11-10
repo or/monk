@@ -1,5 +1,6 @@
 (ns monk.io
-  (:import java.io.File))
+  (:import
+   java.io.File))
 
 (defprotocol FileEntity
   (read-file [f])
@@ -13,55 +14,56 @@
 (extend-protocol FileEntity
   File
   (read-file [f]
-    (slurp f))
+   (slurp f))
 
   (update-file [f s changed?]
-    (when changed?
-      (spit f s)))
+   (when changed?
+     (spit f s)))
 
   (exists? [f]
-    (.exists f))
+   (.exists f))
 
   (directory? [f]
-    (.isDirectory f))
+   (.isDirectory f))
 
   (list-files [f]
-    (file-seq f))
+   (file-seq f))
 
   (relative-path [f ^File dir]
-    (-> (.toAbsolutePath (.toPath dir))
-        (.relativize (.toAbsolutePath (.toPath f)))
-        (.toString)))
+   (-> (.toAbsolutePath (.toPath dir))
+     (.relativize (.toAbsolutePath (.toPath f)))
+     (.toString)))
 
   (path [f]
-    (.getPath f)))
+   (.getPath f)))
 
 (deftype StdIO [in out]
   FileEntity
   (read-file [_]
-    (slurp in))
+   (slurp in))
 
   (update-file [_ s _]
-    (binding [*out* out]
-      (print s))
-    (flush))
+   (binding [*out* out]
+     (print s))
+   (flush))
 
   (exists? [_]
-    true)
+   true)
 
   (directory? [_]
-    false)
+   false)
 
   (list-files [_]
-    nil)
+   nil)
 
   (relative-path [_ _]
-    "STDIN")
+   "STDIN")
 
   (path [_]
-    "STDIN"))
+   "STDIN"))
 
-(defn file-entity [path]
+(defn file-entity
+  [path]
   (cond
     (instance? File path) path
     (= "-" path) (->StdIO *in* *out*)

@@ -12,13 +12,12 @@
 (defn- collect-chunks
   [nodes]
   (let [index (atom 0)]
-    (partition-by
-     (fn [node]
-       (let [current @index]
-         (when-not (ast/is-comment? node)
-           (swap! index inc))
-         current))
-     nodes)))
+    (partition-by (fn [node]
+                    (let [current @index]
+                      (when-not (ast/is-comment? node)
+                        (swap! index inc))
+                      current))
+                  nodes)))
 
 (defn- chunk-key
   [chunk]

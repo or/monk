@@ -16,9 +16,15 @@
          {:keys [namespace]
           :as spec} {}]
     (let [parsed-symbol (when (ast/is-symbol? element)
-                          (-> element z/node second))
+                          (-> element
+                            z/node
+                            second))
           parsed-keyword (when (ast/is-keyword? element)
-                           (-> element z/node second (subs 1) keyword))
+                           (-> element
+                             z/node
+                             second
+                             (subs 1)
+                             keyword))
 
           [value element] (if parsed-keyword
                             (let [value-element (ast/right-relevant element)]
@@ -61,10 +67,12 @@
                   ; one defined is the first one in the list, as it would win
                   (= refer ":all") (update-in [:require :refer-all] conj namespace)
 
-                  (seq? refer) (update-in [:require :refer] merge (into {}
-                                                                        (map (fn [sym]
-                                                                               [sym (symbol namespace sym)]))
-                                                                        refer))))))
+                  (seq? refer) (update-in [:require :refer]
+                                          merge
+                                          (into {}
+                                                (map (fn [sym]
+                                                       [sym (symbol namespace sym)]))
+                                                refer))))))
 
 (defn- add-use-spec
   [alias-map ast]
@@ -73,10 +81,13 @@
     (cond-> alias-map
       ; conj to a list, so the namespaces are ordered in precedence, i.e. the last
       ; one defined is the first one in the list, as it would win
-      namespace (update :use conj [namespace (cond-> {}
-                                               only (assoc :only (set only))
-                                               exclude (assoc :exclude (set exclude))
-                                               rename (assoc :rename rename))]))))
+      namespace (update :use
+                        conj
+                        [namespace
+                         (cond-> {}
+                           only (assoc :only (set only))
+                           exclude (assoc :exclude (set exclude))
+                           rename (assoc :rename rename))]))))
 
 (defn- parse-ns-block
   [alias-map ast block-fn]

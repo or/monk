@@ -883,8 +883,8 @@
     ; empty string
     ""
 
-    ;
-    ))
+   ;
+   ))
 
 (deftest debug-format-string-changes
   (are [input output]
@@ -1219,8 +1219,8 @@
     | arg1
     | arg2)"
 
-    ;
-    ))
+   ;
+   ))
 
 (deftest namespace-and-symbol-mapping
   (are [input symbol-mapping]
@@ -1313,5 +1313,5 @@
     |  (some-stuff arg1 arg2 arg3))"
     {'some.namespace/defn 'clojure.core/do}
 
-    ;
-    ))
+   ;
+   ))

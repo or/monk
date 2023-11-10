@@ -7,8 +7,8 @@
 (defn- count-leading-spaces
   [s]
   (->> s
-       (take-while #{\space})
-       count))
+    (take-while #{\space})
+    count))
 
 (defn refactor
   [ast column]
@@ -21,20 +21,20 @@
         previous-column (when (and (ast/is-whitespace? ast)
                                    (str/includes? (second previous-node) "\n"))
                           (-> previous-node
-                              second
-                              (str/split #"\n")
-                              last
-                              count))
+                            second
+                            (str/split #"\n")
+                            last
+                            count))
         lines (-> current-string
-                  (subs 1 (dec (count current-string)))
-                  str/trim
-                  (str/split #"\n"))
+                (subs 1 (dec (count current-string)))
+                str/trim
+                (str/split #"\n"))
         offsets-and-lengths (->> lines
-                                 (drop 1)
-                                 (map str/trimr)
-                                 (map (juxt count-leading-spaces count))
-                                 (map (fn [[offset length]]
-                                        [offset (- length offset)])))
+                              (drop 1)
+                              (map str/trimr)
+                              (map (juxt count-leading-spaces count))
+                              (map (fn [[offset length]]
+                                     [offset (- length offset)])))
         trimmed-lines (map str/trim lines)
         column-shift (if previous-column
                        (- column previous-column)
@@ -56,11 +56,11 @@
                      (apply min (map first offsets-without-base-column))
                      0)
         offsets-shifted-and-lengths (->> offsets-without-base-column
-                                         (map (fn [[offset length
-                                                    :as tuple]]
-                                                (if (pos? length)
-                                                  [(- offset main-shift) length]
-                                                  tuple))))
+                                      (map (fn [[offset length
+                                                 :as tuple]]
+                                             (if (pos? length)
+                                               [(- offset main-shift) length]
+                                               tuple))))
         adjusted-offsets (map (fn [[offset length]]
                                 (if (pos? length)
                                   (+ base-column offset)
@@ -68,7 +68,10 @@
                               offsets-shifted-and-lengths)
         new-string (str (->> (interleave trimmed-lines
                                          (map (fn [offset]
-                                                (apply str "\n" (repeat offset " "))) adjusted-offsets))
-                             (apply str))
+                                                (apply str "\n" (repeat offset " ")))
+                                              adjusted-offsets))
+                          (apply str))
                         (last trimmed-lines))]
-    (z/replace ast [:string (str "\"" new-string "\"")])))
+    (z/replace ast
+               [:string
+                (str "\"" new-string "\"")])))

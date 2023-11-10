@@ -89,7 +89,8 @@
   ([{:keys [ast]}]
    (ast/is-vector? ast))
 
-  ([{:keys [ast index require-linebreaks?]} state]
+  ([{:keys [ast index require-linebreaks?]}
+    state]
    [(cond
       (zero? index) [0 0]
       require-linebreaks? [1 0]
@@ -101,7 +102,8 @@
   ([{:keys [ast]}]
    (ast/is-set? ast))
 
-  ([{:keys [ast index require-linebreaks?]} state]
+  ([{:keys [ast index require-linebreaks?]}
+    state]
    [(cond
       (zero? index) [0 0]
       require-linebreaks? [1 0]
@@ -124,17 +126,23 @@
 (defn- fn-supporting-multi-arity-form?
   [{:keys [ast first-child ns-map symbol-mapping]}]
   (and (ast/is-list? ast)
-       (ast/is-particular-symbol? first-child #{'clojure.core/defn
-                                                'clojure.core/defn-
-                                                'clojure.core/fn
-                                                'clojure.core/defmacro} ns-map symbol-mapping)))
+       (ast/is-particular-symbol? first-child
+                                  #{'clojure.core/defn
+                                    'clojure.core/defn-
+                                    'clojure.core/fn
+                                    'clojure.core/defmacro}
+                                  ns-map
+                                  symbol-mapping)))
 
 (defformatter defn-form
   ([{:keys [ast first-child ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
-        (ast/is-particular-symbol? first-child #{'clojure.core/defn
-                                                 'clojure.core/defn-
-                                                 'clojure.core/defmacro} ns-map symbol-mapping)))
+        (ast/is-particular-symbol? first-child
+                                   #{'clojure.core/defn
+                                     'clojure.core/defn-
+                                     'clojure.core/defmacro}
+                                   ns-map
+                                   symbol-mapping)))
 
   ([{:keys [ast index]}
     {:keys [seen-name? seen-args? seen-multi-arity? seen-body? doc-string-index]
@@ -257,7 +265,7 @@
              (not seen-args?)
              ; function name?
              (or (ast/is-symbol? ast)
-               ; TODO: check must be smart enough to look inside
+                 ; TODO: check must be smart enough to look inside
                  (ast/is-metadata? ast))) (assoc :seen-name? true)
 
         (and (pos? index)
@@ -273,9 +281,12 @@
 (defformatter let-like-bindings
   ([{:keys [ast index last-sibling first-sibling parent ns-map symbol-mapping]}]
    (or (and (ast/is-vector? ast)
-            (ast/is-particular-symbol? first-sibling #{'clojure.core/let 'clojure.core/doseq
-                                                       'clojure.core/loop 'clojure.core/for
-                                                       'clojure.core/binding} ns-map symbol-mapping)
+            (ast/is-particular-symbol? first-sibling
+                                       #{'clojure.core/let 'clojure.core/doseq
+                                         'clojure.core/loop 'clojure.core/for
+                                         'clojure.core/binding}
+                                       ns-map
+                                       symbol-mapping)
             (= index 1))
        (and (ast/is-vector? ast)
             (ast/is-particular-keyword? last-sibling #{:let})
@@ -333,7 +344,8 @@
         (ast/is-particular-symbol? first-child #{'clojure.core/cond-> 'clojure.core/cond->>} ns-map symbol-mapping)))
 
   ([context state]
-   [(paired-element* 2 1 context) state]))
+   [(paired-element* 2 1 context)
+    state]))
 
 (defformatter cond-form
   ([{:keys [ast first-child ns-map symbol-mapping]}]
@@ -341,7 +353,8 @@
         (ast/is-particular-symbol? first-child #{'clojure.core/cond} ns-map symbol-mapping)))
 
   ([context state]
-   [(paired-element* 1 1 context) state]))
+   [(paired-element* 1 1 context)
+    state]))
 
 (defformatter case-form
   ([{:keys [ast first-child ns-map symbol-mapping]}]
@@ -349,7 +362,8 @@
         (ast/is-particular-symbol? first-child #{'clojure.core/case} ns-map symbol-mapping)))
 
   ([context state]
-   [(paired-element* 2 1 context) state]))
+   [(paired-element* 2 1 context)
+    state]))
 
 (defformatter function-form
   ([{:keys [ast]}]
@@ -462,8 +476,11 @@
 (defformatter extend-protocol-form
   ([{:keys [ast first-child ns-map symbol-mapping]}]
    (and (ast/is-list? ast)
-        (ast/is-particular-symbol? first-child #{'clojure.core/extend-protocol
-                                                 'clojure.core/extend-type} ns-map symbol-mapping)))
+        (ast/is-particular-symbol? first-child
+                                   #{'clojure.core/extend-protocol
+                                     'clojure.core/extend-type}
+                                   ns-map
+                                   symbol-mapping)))
 
   ([{:keys [ast index]}
     {:keys [seen-name?]
@@ -491,7 +508,9 @@
              (ast/is-particular-symbol? (:first-child parent)
                                         #{'clojure.core/deftype
                                           'clojure.core/extend-protocol
-                                          'clojure.core/extend-type} ns-map symbol-mapping))))
+                                          'clojure.core/extend-type}
+                                        ns-map
+                                        symbol-mapping))))
 
   ([{:keys [ast index]}
     {:keys [seen-args?]
@@ -537,4 +556,5 @@
         :else [:keep-existing 1])
       (cond-> state
         (and (= index 1)
-             (ast/is-vector? ast)) (assoc :num-args (count (filter ast/is-symbol? (z/node ast)))))])))
+             (ast/is-vector? ast)) (assoc :num-args
+                                          (count (filter ast/is-symbol? (z/node ast)))))])))

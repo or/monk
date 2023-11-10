@@ -8,8 +8,8 @@
 (defn format-string
   [data {:keys [symbol-mapping]}]
   (-> (ast/parse data)
-      ast/zipper
-      (transform/transform symbol-mapping)
-      transform/concretize-whitespace
-      z/root
-      parcera/code))
+    ast/zipper
+    (transform/transform symbol-mapping)
+    transform/concretize-whitespace
+    z/root
+    parcera/code))

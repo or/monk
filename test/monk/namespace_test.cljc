@@ -8,10 +8,10 @@
 (deftest build-alias-map
   (are [input output]
        (= (-> input
-              prepare-str
-              ast/parse
-              ast/zipper
-              sut/build-alias-map)
+            prepare-str
+            ast/parse
+            ast/zipper
+            sut/build-alias-map)
           output)
 
     "(ns foo.bar
@@ -33,5 +33,5 @@
            ["foo.bar" {:only #{"do-this" "and-this"}}]
            ["another.one" {}]]}
 
-    ;
-    ))
+   ;
+   ))

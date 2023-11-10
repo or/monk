@@ -4,6 +4,7 @@
    [monk.main :as main]
    [monk.tool :as tool]))
 
-(defn -main [& args]
+(defn -main
+  [& args]
   (binding [tool/*profiling* true]
     (prof/profile (apply main/-main args))))

@@ -5,5 +5,5 @@
 (defn prepare-str
   [s]
   (->> (str/split s #"\n")
-       (map #(str/replace % #"^ *[\\|]" ""))
-       (str/join "\n")))
+    (map #(str/replace % #"^ *[\\|]" ""))
+    (str/join "\n")))
