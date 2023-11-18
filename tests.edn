@@ -2,6 +2,7 @@
                       :kaocha.plugin/cloverage]
             :cloverage/opts {:summary true
                              :html? true
+                             :codecov? true
                              :ns-regex [".*"]
                              :ns-exclude-regex [".*_test"
                                                 ".*\\.profile"

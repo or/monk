@@ -1,6 +1,9 @@
 # monk
 
+<!-- badges -->
 [![Tests](https://github.com/or/monk/actions/workflows/tests.yml/badge.svg)](https://github.com/or/monk/actions/workflows/tests.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/or/monk)](https://app.codecov.io/gh/or/monk)
+<!-- /badges -->
 
 > [!WARNING]
 > This is work in progress and not yet ready for production.
