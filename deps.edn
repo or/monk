@@ -19,6 +19,9 @@
                    :ns-default build}
 
            :test {:extra-deps {lambdaisland/kaocha {:mvn/version "1.85.1342"}
-                               lambdaisland/deep-diff2 {:local/root "/Users/or/dev/deep-diff2"}
-                               kaocha-noyoda/kaocha-noyoda {:mvn/version "2019-06-03"}}
-                  :main-opts ["-m" "kaocha.runner"]}}}
+                               lambdaisland/deep-diff2 {:mvn/version "2.10.211"}
+                               kaocha-noyoda/kaocha-noyoda {:mvn/version "2019-06-03"}
+                               lambdaisland/kaocha-cloverage {:mvn/version "1.1.89"}}
+                  :main-opts ["-m" "kaocha.runner"]}
+
+           :local {:extra-deps {lambdaisland/deep-diff2 {:local/root "/Users/or/dev/deep-diff2"}}}}}
