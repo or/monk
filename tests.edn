@@ -1,1 +1,10 @@
-#kaocha/v1 {:plugins [:noyoda.plugin/swap-actual-and-expected]}
+#kaocha/v1 {:plugins [:noyoda.plugin/swap-actual-and-expected
+                      :kaocha.plugin/cloverage]
+            :cloverage/opts {:summary true
+                             :html? true
+                             :ns-regex [".*"]
+                             :ns-exclude-regex [".*_test"
+                                                ".*\\.profile"
+                                                ".*\\.macro"
+                                                ".*\\.diff"]
+                             :output "target/coverage"}}
