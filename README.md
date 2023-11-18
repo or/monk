@@ -1,5 +1,7 @@
 # monk
 
+[![Tests](https://github.com/or/monk/actions/workflows/tests.yml/badge.svg)](https://github.com/or/monk/actions/workflows/tests.yml)
+
 > [!WARNING]
 > This is work in progress and not yet ready for production.
 
